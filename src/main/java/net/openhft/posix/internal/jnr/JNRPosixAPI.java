@@ -76,4 +76,9 @@ public class JNRPosixAPI implements PosixAPI {
     public int fallocate(int fd, int mode, long offset, long length) {
         return jnr.fallocate(fd, mode, offset, length);
     }
+
+    @Override
+    public int madvise(long addr, long length, int advice) {
+        return jnr.madvise(addr, length, advice);
+    }
 }

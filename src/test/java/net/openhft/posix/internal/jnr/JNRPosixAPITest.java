@@ -1,7 +1,6 @@
 package net.openhft.posix.internal.jnr;
 
 import net.openhft.posix.*;
-import net.openhft.posix.internal.jna.JNAPosixAPI;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import static org.junit.Assert.*;
 public class JNRPosixAPITest {
 
     JNRPosixAPI jnr = new JNRPosixAPI();
-    JNAPosixAPI jna = new JNAPosixAPI();
 
     @Test
     public void open() throws IOException {
@@ -45,6 +43,9 @@ public class JNRPosixAPITest {
 
         long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, fd, 0L);
         assertNotEquals(-1, addr);
+
+        int err4 = jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL);
+        assertEquals(0, err4);
 
         ProcMaps procMaps = ProcMaps.forSelf();
         final List<Mapping> list = procMaps.findAll(m -> filename.equals(m.path()));

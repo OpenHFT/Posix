@@ -21,6 +21,12 @@ public interface PosixAPI {
 
     int ftruncate(int fd, long offset);
 
+    default int madvise(long addr, long length, MAdviseFlag advice) {
+        return madvise(addr, length, advice.mode());
+    }
+
+    int madvise(long addr, long length, int advice);
+
     default long mmap(long addr, long length, MMapProt prot, MMapFlags flags, int fd, long offset) {
         return mmap(addr, length, prot.mode(), flags.mode(), fd, offset);
     }

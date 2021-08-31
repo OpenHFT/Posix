@@ -38,4 +38,9 @@ public class RawPosixAPI implements PosixAPI {
     public int fallocate(int fd, int mode, long offset, long length) {
         return 0;
     }
+
+    @Override
+    public int madvise(long addr, long length, int advice) {
+        return 0;
+    }
 }

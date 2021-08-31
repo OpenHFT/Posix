@@ -9,6 +9,8 @@ public interface JNRPosixInterface {
 
     int close(int fd);
 
+    int madvise(long addr, long length, int advise);
+
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 
     int munmap(long addr, long length);

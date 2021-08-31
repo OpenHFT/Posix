@@ -27,6 +27,10 @@ public class ProcMaps {
         return new ProcMaps(pid);
     }
 
+    public List<Mapping> list() {
+        return mappingList;
+    }
+
     public Mapping findFirst(Predicate<Mapping> test) {
         return mappingList.stream().filter(test).findFirst().get();
     }

@@ -8,6 +8,7 @@ import jnr.constants.platform.Errno;
 import net.openhft.posix.PosixAPI;
 
 public class JNAPosixAPI implements PosixAPI {
+    private static final Pointer NULL = Pointer.createConstant(0);
     private final JNAPosixInterface jna = new JNAPosixInterface();
 
     public JNAPosixAPI() {
@@ -32,7 +33,7 @@ public class JNAPosixAPI implements PosixAPI {
 
     @Override
     public long mmap(long addr, long length, int prot, int flags, int fd, long offset) {
-        return jna.mmap(Pointer.createConstant(addr), length, prot, flags, fd, offset);
+        return jna.mmap(addr == 0 ? NULL : Pointer.createConstant(addr), length, prot, flags, fd, offset);
     }
 
     @Override
@@ -47,6 +48,11 @@ public class JNAPosixAPI implements PosixAPI {
 
     @Override
     public int fallocate(int fd, int mode, long offset, long length) {
+        return 0;
+    }
+
+    @Override
+    public int madvise(long addr, long length, int advice) {
         return 0;
     }
 }
