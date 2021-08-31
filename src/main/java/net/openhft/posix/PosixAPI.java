@@ -2,6 +2,10 @@ package net.openhft.posix;
 
 import net.openhft.posix.internal.PosixAPIHolder;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 public interface PosixAPI {
 
     /**
@@ -40,4 +44,14 @@ public interface PosixAPI {
     }
 
     int open(CharSequence path, int flags, int perm);
+
+    default long du(String filename) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder("du", filename);
+        pb.redirectErrorStream(true);
+        final Process process = pb.start();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line = br.readLine();
+            return Long.parseUnsignedLong(line.split("\\s+")[0]);
+        }
+    }
 }

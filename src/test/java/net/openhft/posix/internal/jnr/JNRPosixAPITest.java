@@ -4,9 +4,7 @@ import net.openhft.posix.*;
 import net.openhft.posix.internal.jna.JNAPosixAPI;
 import org.junit.Test;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -17,16 +15,6 @@ public class JNRPosixAPITest {
 
     JNRPosixAPI jnr = new JNRPosixAPI();
     JNAPosixAPI jna = new JNAPosixAPI();
-
-    public static long diskUsage(String filename) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("du", filename);
-        pb.redirectErrorStream(true);
-        final Process process = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line = br.readLine();
-            return Long.parseUnsignedLong(line.split("\\s+")[0]);
-        }
-    }
 
     @Test
     public void open() throws IOException {
@@ -53,7 +41,7 @@ public class JNRPosixAPITest {
         int err = jnr.ftruncate(fd, length);
         assertEquals(0, err);
 
-        assertEquals(0, diskUsage(filename));
+        assertEquals(0, jnr.du(filename));
 
         long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, fd, 0L);
         assertNotEquals(-1, addr);
@@ -66,10 +54,10 @@ public class JNRPosixAPITest {
         assertEquals(length, mapping.length());
         assertEquals(0L, mapping.offset());
 
-        assertEquals(0, diskUsage(filename));
+        assertEquals(0, jnr.du(filename));
         int err3 = jnr.fallocate(fd, 0, 0, length);
         assertEquals(0, err3);
-        assertEquals(length >> 10, diskUsage(filename));
+        assertEquals(length >> 10, jnr.du(filename));
 
         final int err0 = jnr.msync(addr, length, MSyncFlag.MS_ASYNC);
         assertEquals(0, err0);
