@@ -1,0 +1,10 @@
+= Java-Posix
+Peter Lawrey, 31/08/2021
+
+Posix library used by OpenHFT.
+
+This supports calls to do with memory mapping which other Posix libraries don't seem to cover.
+
+== Switching implementations.
+
+This library uses JNR, JNA or reflection/raw Java versions as is available.
