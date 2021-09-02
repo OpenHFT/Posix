@@ -1,20 +1,19 @@
 package net.openhft.posix.internal.jnr;
 
+import jnr.constants.platform.Errno;
 import jnr.ffi.LibraryLoader;
 import jnr.ffi.Platform;
+import jnr.ffi.Pointer;
 import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.MSyncFlag;
 import net.openhft.posix.PosixAPI;
-import net.openhft.posix.internal.jna.JNAPosixAPI;
 
 public class JNRPosixAPI implements PosixAPI {
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
-
-    // TODO FIX so this isn't needed.
-    static final JNAPosixAPI fallback = new JNAPosixAPI();
+    static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
 
     private final JNRPosixInterface jnr;
 
@@ -41,20 +40,17 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public long mmap(long addr, long length, int prot, int flags, int fd, long offset) {
-        return fallback.mmap(addr, length, prot, flags, fd, offset);
 
-/*
-        final long mmap = jnr.mmap(addr, length, prot, flags, fd, offset);
+        final Pointer wrap = addr == 0 ? NULL : Pointer.wrap(RUNTIME, addr);
+        final long mmap = jnr.mmap(wrap, length, prot, flags, fd, offset);
         if (mmap == 0 || mmap == -1) {
             final int lastError = RUNTIME.getLastError();
             for (Errno errno : Errno.values()) {
                 if (errno.intValue() == lastError)
                     throw new RuntimeException(errno.toString());
             }
-            throw new RuntimeException("Unknown errno " + lastError);
         }
         return mmap;
-*/
     }
 
     @Override

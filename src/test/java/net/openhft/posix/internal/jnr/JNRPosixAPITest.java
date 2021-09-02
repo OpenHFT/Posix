@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
 
 public class JNRPosixAPITest {
 
-    JNRPosixAPI jnr = new JNRPosixAPI();
+    static final JNRPosixAPI jnr = new JNRPosixAPI();
 
     @Test
     public void open() throws IOException {

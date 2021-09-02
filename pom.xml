@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.openhft</groupId>
-    <artifactId>java-posix</artifactId>
+    <artifactId>posix</artifactId>
     <packaging>jar</packaging>
     <version>1.22.0-SNAPSHOT</version>
     <name>java-posix</name>
@@ -29,6 +29,12 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <version>3.21ea5</version>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
