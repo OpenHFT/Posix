@@ -136,4 +136,9 @@ public class JNRPosixAPI implements PosixAPI {
     public int lastError() {
         return Runtime.getSystemRuntime().getLastError();
     }
+
+    @Override
+    public String strerror(int errno) {
+        return jnr.strerror(errno);
+    }
 }

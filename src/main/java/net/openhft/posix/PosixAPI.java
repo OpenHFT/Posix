@@ -169,4 +169,10 @@ public interface PosixAPI {
     int get_nprocs_conf();
 
     int gettid();
+
+    String strerror(int errno);
+
+    default String lastErrorStr() {
+        return strerror(lastError());
+    }
 }

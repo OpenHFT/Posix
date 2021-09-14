@@ -5,10 +5,10 @@
 
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
-    <packaging>jar</packaging>
     <version>1.22ea1-SNAPSHOT</version>
-    <name>java-posix</name>
+    <name>posix</name>
     <description>OpenHFT Java Posix APIs</description>
+    <packaging>jar</packaging>
 
     <dependencyManagement>
         <dependencies>
@@ -68,6 +68,23 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
     <profiles>
         <profile>
             <id>java11</id>
