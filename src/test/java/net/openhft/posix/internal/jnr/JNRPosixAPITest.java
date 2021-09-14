@@ -6,7 +6,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.*;
 
@@ -69,5 +71,45 @@ public class JNRPosixAPITest {
         assertEquals(0, err2);
         assertTrue(file.toFile().exists());
         file.toFile().delete();
+    }
+
+    @Test
+    public void gettimeofday() {
+        long time = jnr.gettimeofday();
+        assertNotEquals(0, time);
+        assertEquals(System.currentTimeMillis() * 1_000, time, 1000);
+        System.out.println(time);
+    }
+
+    @Test
+    public void get_nprod() {
+        final int nprocs = jnr.get_nprocs();
+        assertTrue(nprocs > 0);
+        final int nprocs_conf = jnr.get_nprocs_conf();
+        assertTrue(nprocs <= nprocs_conf);
+    }
+
+    @Test
+    public void getpid() {
+        final int nprocs = jnr.get_nprocs();
+        final int[] ints = IntStream.range(0, nprocs * 101)
+                .parallel()
+                .map(i -> jnr.gettid())
+                .sorted()
+                .distinct()
+                .toArray();
+        System.out.println(Arrays.toString(ints));
+    }
+
+    @Test
+    public void setaffinity() {
+        try {
+            assertEquals(0, jnr.sched_setaffinity_as(jnr.gettid(), 1));
+            assertEquals("1-1", jnr.sched_getaffinity_summary(jnr.gettid()));
+            assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 2, 4));
+            assertEquals("2-3", jnr.sched_getaffinity_summary(jnr.gettid()));
+        } finally {
+            assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 0, jnr.get_nprocs_conf()));
+        }
     }
 }

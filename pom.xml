@@ -6,7 +6,7 @@
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
     <packaging>jar</packaging>
-    <version>1.22.0-SNAPSHOT</version>
+    <version>1.22ea1-SNAPSHOT</version>
     <name>java-posix</name>
     <description>OpenHFT Java Posix APIs</description>
 
@@ -29,12 +29,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>net.openhft</groupId>
-            <artifactId>affinity</artifactId>
-            <version>3.21ea5</version>
-        </dependency>
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -74,6 +68,47 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>java11</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/META-INF/services</directory>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.8.1</version>
+                        <configuration>
+                            <source>11</source>
+                            <target>11</target>
+                            <compilerArgs>
+                                <arg>--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED</arg>
+                                <arg>--add-exports=java.base/sun.nio.ch=ALL-UNNAMED</arg>
+                            </compilerArgs>
+                            <excludes>
+                                <exclude>**/jdk8/**</exclude>
+                                <exclude>**/META-INF/services/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <scm>
         <connection>scm:git:git@github.com:OpenHFT/java-posix.git</connection>
         <developerConnection>scm:git:git@github.com:jnr/jnr-posix.git</developerConnection>

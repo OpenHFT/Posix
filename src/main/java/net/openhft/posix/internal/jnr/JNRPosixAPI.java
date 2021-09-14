@@ -4,6 +4,7 @@ import jnr.constants.platform.Errno;
 import jnr.ffi.LibraryLoader;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
+import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.MSyncFlag;
 import net.openhft.posix.PosixAPI;
@@ -16,6 +17,7 @@ public class JNRPosixAPI implements PosixAPI {
     static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
 
     private final JNRPosixInterface jnr;
+    private int get_nprocs_conf = 0;
 
     public JNRPosixAPI() {
         LibraryLoader<JNRPosixInterface> loader = LibraryLoader.create(JNRPosixInterface.class);
@@ -76,5 +78,62 @@ public class JNRPosixAPI implements PosixAPI {
     @Override
     public int madvise(long addr, long length, int advice) {
         return jnr.madvise(addr, length, advice);
+    }
+
+    @Override
+    public long read(int fd, long dst, long len) {
+        return jnr.read(fd, dst, len);
+    }
+
+    @Override
+    public long write(int fd, long src, long len) {
+        return jnr.write(fd, src, len);
+    }
+
+    @Override
+    public int gettimeofday(long timeval) {
+        return jnr.gettimeofday(timeval, 0L);
+    }
+
+    @Override
+    public long malloc(long size) {
+        return jnr.malloc(size);
+    }
+
+    @Override
+    public void free(long ptr) {
+        jnr.free(ptr);
+    }
+
+    @Override
+    public int get_nprocs() {
+        return jnr.get_nprocs();
+    }
+
+    @Override
+    public int get_nprocs_conf() {
+        if (get_nprocs_conf == 0)
+            get_nprocs_conf = jnr.get_nprocs_conf();
+        return get_nprocs_conf;
+    }
+
+    @Override
+    public int sched_setaffinity(int pid, int cpusetsize, long mask) {
+        return jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+    }
+
+    @Override
+    public int sched_getaffinity(int pid, int cpusetsize, long mask) {
+        return jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+    }
+
+    @Override
+    public int gettid() {
+        return jnr.gettid();
+    }
+
+    @Override
+    public int lastError() {
+        return Runtime.getSystemRuntime().getLastError();
     }
 }

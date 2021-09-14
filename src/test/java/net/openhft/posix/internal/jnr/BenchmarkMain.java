@@ -1,6 +1,7 @@
 package net.openhft.posix.internal.jnr;
 
-import net.openhft.affinity.AffinityLock;
+//import net.openhft.affinity.AffinityLock;
+
 import net.openhft.posix.*;
 import net.openhft.posix.util.Histogram;
 import sun.misc.Unsafe;
@@ -39,10 +40,16 @@ Messages; 838860800 rate: 1501502/second
 read only time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.150 / 0.401  0.841 / 1.090  1.162 / 1.182  1.310 / 1.522  3.63 / 6.31  16.48 / 199.4 - 2025
 write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.130 / 0.220  0.510 / 0.631  0.721 / 0.841  0.991 / 1.090  1.750 / 4.08  5.27 / 5.69 - 32.5
 read to write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.581 / 1.290  1.982 / 3.55  5.99 / 123.0  184.1 / 201.5  334 / 1059  1804 / 5,510 - 21,400
+
+Messages; 25769803776 rate: 1000000/second
+write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.001 / 0.110  0.120 / 0.160  0.300 / 0.500  0.601 / 1.222  4.00 / 9.62  11.98 / 12.85 - 114.3
+read only time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.001 / 0.130  0.210 / 0.210  0.531 / 0.911  0.971 / 1.142  4.23 / 4.97  10.54 / 12.78 - 1341
+read to write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9999 - worst was 0.001 / 0.391  1.142 / 10.83  14.96 / 21.09  28.6 / 45.6  166.7 / 206.6  386 / 1403 - 5,150
+
  */
 public class BenchmarkMain {
-    private static final Unsafe UNSAFE;
-    private static final long THROUGHPUT = Long.getLong("throughput", 1_500_000);
+    static final Unsafe UNSAFE;
+    private static final long THROUGHPUT = Long.getLong("throughput", 1_400_000);
     static int[] blackhole = new int[512 / 4];
 
     static {
@@ -62,7 +69,7 @@ public class BenchmarkMain {
         file.delete();
         file.createNewFile();
         final int fd = jnr.open(filename, OpenFlags.O_RDWR.mode(), 0666);
-        final long length = 1L << 40;
+        final long length = 1L << 30;
         int err = jnr.ftruncate(fd, length);
         assertEquals(0, err);
 
@@ -90,7 +97,7 @@ public class BenchmarkMain {
 
         AtomicLong upto = new AtomicLong();
         Thread msync = new Thread(() -> {
-            AffinityLock lock = AffinityLock.acquireLock();
+            jnr.sched_setaffinity_as(jnr.gettid(), 15);
             try {
                 long prev = 0, next = 0;
                 while (true) {
@@ -127,55 +134,70 @@ public class BenchmarkMain {
         msync.setDaemon(true);
         msync.start();
 
+        final int SIZE = 256;
         Thread reader = new Thread(() -> {
+            jnr.sched_setaffinity_as(jnr.gettid(), 14);
+
+            long warmup = 1_000_000;
             final int rfd = jnr.open(filename, OpenFlags.O_RDWR.mode(), 0666);
             long raddr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, rfd, 0L);
             Histogram readToWrite = new Histogram();
             Histogram readTime = new Histogram();
-            for (long i = 0; i < length; i += 512) {
+            for (long i = 0; i < length; i += SIZE) {
+                if (i % (2 << 20) == 0 && i % 100000 == 0) {
+                    System.out.println("read to write time: " + readToWrite.toLongMicrosFormat());
+                }
                 for (int len; (len = UNSAFE.getIntVolatile(null, raddr + i)) == 0; ) {
                     if (Thread.currentThread().isInterrupted())
                         throw new AssertionError("length: " + i);
                 }
                 long rstart = System.nanoTime();
                 long wstart = UNSAFE.getLong(raddr + i + 4);
-                for (int y = 12; y < 512; y += 4) {
+                for (int y = 12; y < SIZE; y += 4) {
                     blackhole[y / 4] = UNSAFE.getInt(raddr + i + y);
                 }
                 long rend = System.nanoTime();
                 readToWrite.sample(rend - wstart);
                 readTime.sample(rend - rstart);
+                if (--warmup == 0) {
+                    System.out.println("Warm up complete");
+                    readTime.reset();
+                    readToWrite.reset();
+                }
             }
             System.out.println("read only time: " + readTime.toLongMicrosFormat());
             System.out.println("read to write time: " + readToWrite.toLongMicrosFormat());
         });
         reader.start();
 
-        AffinityLock lock = AffinityLock.acquireLock();
+        jnr.sched_setaffinity_as(jnr.gettid(), 13);
         Histogram histogram = new Histogram();
         long next = System.nanoTime();
         long start0 = next;
         long interval = (long) (1e9 / THROUGHPUT);
         System.out.println("Interval: " + interval);
+        long warmup = 1_000_000;
         for (long i = 0; i < length; i += 2L << 20) {
             for (int j = 0; j < 2L << 20; j += 4 << 10) {
                 // fault in one page in advance.
                 final long fault = addr + i + j;
 //                System.out.println("Fault: "+(fault - addr));
                 UNSAFE.compareAndSwapLong(null, fault, 0, 0);
-                for (int x = 0; x < (4 << 10); x += 512) {
+                for (int x = 0; x < (4 << 10); x += SIZE) {
                     final long raddr = addr + i + j + x;
                     long start = System.nanoTime();
                     UNSAFE.putLong(raddr + 4, start);
-                    for (int y = 12; y < 512; y += 4) {
+                    for (int y = 12; y < SIZE; y += 4) {
                         // int does a little more work than long.
                         UNSAFE.putInt(raddr + y, y);
                     }
 //                    System.out.println("header " + (raddr - addr));
-                    UNSAFE.putIntVolatile(null, raddr, 512);
+                    UNSAFE.putIntVolatile(null, raddr, SIZE);
                     long time = System.nanoTime() - start;
                     histogram.sample(time);
-                    if (time > 100_000)
+                    if (--warmup == 0)
+                        histogram.reset();
+                    if (time > 20_000)
                         System.out.println("i: " + i + ", took " + time / 1000 + " us.");
                     next += interval;
                     while (System.nanoTime() < next) {
@@ -184,7 +206,7 @@ public class BenchmarkMain {
             }
             upto.set(i + (1L << 21));
         }
-        final long messages = length / 512;
+        final long messages = length / SIZE;
         final long time = System.nanoTime() - start0;
         System.out.println("Messages; " + messages + " rate: " + Math.round(1e9 * messages / time) + "/second");
         System.out.println("write time: " + histogram.toLongMicrosFormat());

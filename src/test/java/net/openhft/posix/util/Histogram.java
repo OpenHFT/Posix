@@ -18,7 +18,6 @@
 
 package net.openhft.posix.util;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -28,7 +27,7 @@ import java.util.function.DoubleFunction;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
-public class Histogram  {
+public class Histogram {
     private static final DecimalFormat F3 = new DecimalFormat("0.000");
     private static final DecimalFormat F2 = new DecimalFormat("0.00");
     private static final DecimalFormat F1 = new DecimalFormat("0.0");
@@ -57,7 +56,6 @@ public class Histogram  {
     /**
      * @return Histogram for use with System.nanoTime() up to 4 second delay.
      */
-    @NotNull
     public static Histogram timeMicros() {
         return new Histogram(22 /* 4 seconds */, 3 /* 2 decimal places */, 1000.0 /* nano-seconds */);
     }
@@ -88,7 +86,7 @@ public class Histogram  {
     public boolean equals(Object obj) {
         if (!(obj instanceof Histogram))
             return false;
-        @NotNull Histogram h = (Histogram) obj;
+        Histogram h = (Histogram) obj;
         if (!(powersOf2 == h.powersOf2
                 && fractionBits == h.fractionBits
                 && floor == h.floor))
@@ -101,7 +99,6 @@ public class Histogram  {
         return true;
     }
 
-    @NotNull
     @Override
     public String toString() {
         return "Histogram{" +
@@ -145,7 +142,7 @@ public class Histogram  {
         return sampleCount;
     }
 
-    public void add(@NotNull Histogram h) {
+    public void add(Histogram h) {
         assert powersOf2 == h.powersOf2;
         assert fractionBits == h.fractionBits;
         totalCount += h.totalCount;
@@ -206,23 +203,23 @@ public class Histogram  {
         return perthousand / 10.0;
     }
 
-    @NotNull
+
     public double[] getPercentiles() {
         return getPercentiles(percentilesFor(totalCount));
     }
 
-    @NotNull
+
     public double[] getPercentiles(double[] percentileFor) {
         return DoubleStream.of(percentileFor).map(this::percentile).toArray();
     }
 
-    @NotNull
+
     public String toMicrosFormat() {
         return toMicrosFormat(t -> t / 1e3);
     }
 
-    @NotNull
-    public String toMicrosFormat(@NotNull DoubleFunction<Double> toMicros) {
+
+    public String toMicrosFormat(DoubleFunction<Double> toMicros) {
         if (totalCount < 1_000_000)
             return "50/90 99/99.9 99.99 - worst was " +
                     p(toMicros.apply(percentile(0.5))) + " / " +
@@ -253,13 +250,13 @@ public class Histogram  {
                 p(toMicros.apply(percentile(1)));
     }
 
-    @NotNull
+
     public String toLongMicrosFormat() {
         return toLongMicrosFormat(t -> t / 1e3);
     }
 
-    @NotNull
-    public String toLongMicrosFormat(@NotNull DoubleFunction<Double> toMicros) {
+
+    public String toLongMicrosFormat(DoubleFunction<Double> toMicros) {
         if (totalCount < 1_000_000)
             return "50/90 97/99 99.7/99.9 99.97/99.99 - worst was " +
                     first4nines(toMicros) + " - " +
@@ -281,8 +278,8 @@ public class Histogram  {
                 p(toMicros.apply(percentile(1)));
     }
 
-    @NotNull
-    private String first4nines(@NotNull DoubleFunction<Double> toMicros) {
+
+    private String first4nines(DoubleFunction<Double> toMicros) {
         return p(toMicros.apply(percentile(0.5))) + " / " +
                 p(toMicros.apply(percentile(0.9))) + "  " +
                 p(toMicros.apply(percentile(0.97))) + " / " +
@@ -293,7 +290,7 @@ public class Histogram  {
                 p(toMicros.apply(percentile(0.9999)));
     }
 
-    @NotNull
+
     private String p(double v) {
         double v2 = v * 100 / (1 << fractionBits);
         // Uses non thread safe static fields.
