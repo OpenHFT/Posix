@@ -107,7 +107,7 @@ public class JNRPosixAPITest {
             assertEquals(0, jnr.sched_setaffinity_as(jnr.gettid(), 1));
             assertEquals("1-1", jnr.sched_getaffinity_summary(jnr.gettid()));
             assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 2, 4));
-            assertEquals("2-3", jnr.sched_getaffinity_summary(jnr.gettid()));
+            assertEquals("2-4", jnr.sched_getaffinity_summary(jnr.gettid()));
         } finally {
             assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 0, jnr.get_nprocs_conf()));
         }

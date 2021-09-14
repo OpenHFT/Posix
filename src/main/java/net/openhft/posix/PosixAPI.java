@@ -139,7 +139,7 @@ public interface PosixAPI {
             for (int i = 0; i < size; i += 4)
                 UNSAFE.putInt(ptr + i, 0);
 
-            for (int i = from; i < to; i++) {
+            for (int i = from; i <= to; i++) {
                 UNSAFE.putInt(ptr + i / 32,
                         UNSAFE.getInt(ptr + i / 32) | (1 << i));
             }
