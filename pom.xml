@@ -13,7 +13,7 @@
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
     <packaging>jar</packaging>
-    <version>1.22ea1-SNAPSHOT</version>
+    <version>1.22ea2-SNAPSHOT</version>
     <name>java-posix</name>
     <description>OpenHFT Java Posix APIs</description>
 
