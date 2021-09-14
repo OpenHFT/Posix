@@ -12,7 +12,7 @@
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
     <packaging>jar</packaging>
-    <version>1.22ea2</version>
+    <version>1.22ea3-SNAPSHOT</version>
     <name>java-posix</name>
     <description>OpenHFT Java Posix APIs</description>
 
@@ -119,6 +119,6 @@
         <connection>scm:git:git@github.com:OpenHFT/posix.git</connection>
         <developerConnection>scm:git:git@github.com:OpenHFT/posix.git</developerConnection>
         <url>scm:git:git@github.com:OpenHFT/posix.git</url>
-	<tag>posix-1.22ea2</tag>
+	<tag>ea</tag>
     </scm>
 </project>
