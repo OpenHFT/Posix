@@ -1,12 +1,11 @@
 <?xml version="1.0" ?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
     <packaging>jar</packaging>
-    <version>1.22ea1-SNAPSHOT</version>
+    <version>1.22ea1</version>
     <name>java-posix</name>
     <description>OpenHFT Java Posix APIs</description>
 
@@ -113,5 +112,6 @@
         <connection>scm:git:git@github.com:OpenHFT/java-posix.git</connection>
         <developerConnection>scm:git:git@github.com:jnr/jnr-posix.git</developerConnection>
         <url>git@github.com:jnr/jnr-posix.git</url>
-    </scm>
+      <tag>posix-1.22ea1</tag>
+  </scm>
 </project>
