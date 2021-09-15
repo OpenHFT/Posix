@@ -9,6 +9,8 @@ import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.MSyncFlag;
 import net.openhft.posix.PosixAPI;
 
+import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
+
 public class JNRPosixAPI implements PosixAPI {
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
@@ -140,5 +142,18 @@ public class JNRPosixAPI implements PosixAPI {
     @Override
     public String strerror(int errno) {
         return jnr.strerror(errno);
+    }
+
+    @Override
+    public long clock_gettime(int clockId) {
+        long ptr = malloc(16);
+        try {
+            int ret = jnr.clock_gettime(clockId, ptr);
+            if (ret != 0)
+                throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+            return UNSAFE.getLong(ptr) * 1_000_000_000 + UNSAFE.getLong(ptr + 8);
+        } finally {
+            free(ptr);
+        }
     }
 }

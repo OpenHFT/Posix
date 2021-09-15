@@ -40,4 +40,6 @@ public interface JNRPosixInterface {
     int gettid();
 
     String strerror(int errno);
+
+    int clock_gettime(int clockId, long ptr);
 }
