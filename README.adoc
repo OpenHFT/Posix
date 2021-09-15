@@ -1,4 +1,4 @@
-= Java-Posix
+= Posix
 Peter Lawrey, 31/08/2021
 
 Posix library used by OpenHFT.
