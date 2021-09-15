@@ -15,6 +15,22 @@ import static org.junit.Assert.*;
 public class JNRPosixAPITest {
 
     static final JNRPosixAPI jnr = new JNRPosixAPI();
+/*
+    static long blackhole;
+
+    public static void main(String[] args) {
+        for (ClockId clockId : new ClockId[]{ClockId.CLOCK_REALTIME, ClockId.CLOCK_REALTIME_COARSE, ClockId.CLOCK_REALTIME_ALARM}) {
+            for (int t = 0; t < 3; t++) {
+                long start = System.nanoTime();
+                int count = 100_000;
+                for (int i = 0; i < count; i++)
+                    blackhole = jnr.clock_gettime(clockId);
+                long avg = (System.nanoTime() - start) / count;
+                System.out.println(clockId + ": " + avg + " ns");
+            }
+        }
+    }
+*/
 
     @Test
     public void open() throws IOException {
@@ -77,7 +93,8 @@ public class JNRPosixAPITest {
     public void gettimeofday() {
         long time = jnr.gettimeofday();
         assertNotEquals(0, time);
-        assertEquals(System.currentTimeMillis() * 1_000, time, 1000);
+        assertEquals(System.currentTimeMillis() * 1_000, time, 2000);
+        assertEquals(jnr.clock_gettime() / 1000.0, time, 1000);
         System.out.println(time);
     }
 
@@ -110,6 +127,18 @@ public class JNRPosixAPITest {
             assertEquals("2-4", jnr.sched_getaffinity_summary(jnr.gettid()));
         } finally {
             assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 0, jnr.get_nprocs_conf()));
+        }
+    }
+
+    @Test
+    public void clocks() {
+        for (ClockId value : ClockId.values()) {
+            try {
+                final long gettime = jnr.clock_gettime(value);
+                System.out.println(value + ": " + gettime);
+            } catch (IllegalArgumentException e) {
+                System.out.println(value + ": " + e);
+            }
         }
     }
 }

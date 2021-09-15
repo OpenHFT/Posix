@@ -38,4 +38,8 @@ public interface JNRPosixInterface {
     int sched_getaffinity(int pid, int cpusetsize, Pointer mask);
 
     int gettid();
+
+    String strerror(int errno);
+
+    int clock_gettime(int clockId, long ptr);
 }

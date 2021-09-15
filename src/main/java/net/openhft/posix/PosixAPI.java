@@ -149,6 +149,11 @@ public interface PosixAPI {
         }
     }
 
+    /**
+     * note clock_gettime() is more accurate if available.
+     *
+     * @return wall clock in microseconds.
+     */
     default long gettimeofday() {
         long ptr = malloc(16);
         try {
@@ -160,6 +165,19 @@ public interface PosixAPI {
         }
     }
 
+    /**
+     * @return wall clock in nano-seconds.
+     */
+    default long clock_gettime() {
+        return clock_gettime(0 /* CLOCK_REALTIME */);
+    }
+
+    default long clock_gettime(ClockId clockId) throws IllegalArgumentException {
+        return clock_gettime(clockId.mode());
+    }
+
+    long clock_gettime(int clockId) throws IllegalArgumentException;
+
     long malloc(long size);
 
     void free(long ptr);
@@ -169,4 +187,10 @@ public interface PosixAPI {
     int get_nprocs_conf();
 
     int gettid();
+
+    String strerror(int errno);
+
+    default String lastErrorStr() {
+        return strerror(lastError());
+    }
 }
