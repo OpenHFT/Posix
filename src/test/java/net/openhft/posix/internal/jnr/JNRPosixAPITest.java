@@ -93,7 +93,7 @@ public class JNRPosixAPITest {
     public void gettimeofday() {
         long time = jnr.gettimeofday();
         assertNotEquals(0, time);
-        assertEquals(System.currentTimeMillis() * 1_000, time, 1000);
+        assertEquals(System.currentTimeMillis() * 1_000, time, 2000);
         assertEquals(jnr.clock_gettime() / 1000, time, 1000);
         System.out.println(time);
     }
