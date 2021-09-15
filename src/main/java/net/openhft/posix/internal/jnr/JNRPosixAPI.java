@@ -130,6 +130,11 @@ public class JNRPosixAPI implements PosixAPI {
     }
 
     @Override
+    public int getpid() {
+        return jnr.getpid();
+    }
+
+    @Override
     public int gettid() {
         return jnr.gettid();
     }

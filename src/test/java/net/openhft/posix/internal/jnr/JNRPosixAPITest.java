@@ -1,8 +1,10 @@
 package net.openhft.posix.internal.jnr;
 
+import jnr.ffi.Platform;
 import net.openhft.posix.*;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,10 +13,14 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 
 public class JNRPosixAPITest {
 
-    static final JNRPosixAPI jnr = new JNRPosixAPI();
+    static final PosixAPI jnr =
+            Platform.getNativePlatform().isUnix()
+                    ? new JNRPosixAPI()
+                    : new WinJNRPosixAPI();
 /*
     static long blackhole;
 
@@ -50,6 +56,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void mmap_sync() throws IOException {
+        assumeTrue(new File("/proc/self").exists());
         final Path file = Files.createTempFile("mmap", ".test");
         final String filename = file.toAbsolutePath().toString();
         final int fd = jnr.open(filename, OpenFlags.O_RDWR, 0666);
@@ -111,15 +118,28 @@ public class JNRPosixAPITest {
         final int nprocs = jnr.get_nprocs();
         final int[] ints = IntStream.range(0, nprocs * 101)
                 .parallel()
+                .map(i -> jnr.getpid())
+                .sorted()
+                .distinct()
+                .toArray();
+        assertEquals(Arrays.toString(ints), 1, ints.length);
+    }
+
+    @Test
+    public void gettid() {
+        final int nprocs = jnr.get_nprocs();
+        final int[] ints = IntStream.range(0, nprocs * 101)
+                .parallel()
                 .map(i -> jnr.gettid())
                 .sorted()
                 .distinct()
                 .toArray();
-        System.out.println(Arrays.toString(ints));
+        assertTrue(Arrays.toString(ints), ints.length > 1);
     }
 
     @Test
     public void setaffinity() {
+        assumeTrue(jnr instanceof JNRPosixAPI);
         try {
             assertEquals(0, jnr.sched_setaffinity_as(jnr.gettid(), 1));
             assertEquals("1-1", jnr.sched_getaffinity_summary(jnr.gettid()));
@@ -132,6 +152,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void clocks() {
+        assumeTrue(jnr instanceof JNRPosixAPI);
         for (ClockId value : ClockId.values()) {
             try {
                 final long gettime = jnr.clock_gettime(value);

@@ -186,6 +186,8 @@ public interface PosixAPI {
 
     int get_nprocs_conf();
 
+    int getpid();
+
     int gettid();
 
     String strerror(int errno);
