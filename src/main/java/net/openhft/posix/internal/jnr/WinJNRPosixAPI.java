@@ -36,6 +36,11 @@ public class WinJNRPosixAPI implements PosixAPI {
     }
 
     @Override
+    public int lockf(int fd, int cmd, long len) {
+        return -1;
+    }
+
+    @Override
     public long read(int fd, long dst, long len) {
         return jnr._read(fd, dst, len);
     }
