@@ -134,14 +134,18 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettid() {
-        final int nprocs = jnr.get_nprocs();
-        final int[] ints = IntStream.range(0, nprocs * 101)
-                .parallel()
-                .map(i -> jnr.gettid())
-                .sorted()
-                .distinct()
-                .toArray();
-        assertTrue(Arrays.toString(ints), ints.length > 1);
+        try {
+            final int nprocs = jnr.get_nprocs();
+            final int[] ints = IntStream.range(0, nprocs * 101)
+                    .parallel()
+                    .map(i -> jnr.gettid())
+                    .sorted()
+                    .distinct()
+                    .toArray();
+            assertTrue(Arrays.toString(ints), ints.length > 1);
+        } catch (UnsatisfiedLinkError ignore) {
+            assumeTrue(false);
+        }
     }
 
     @Test
@@ -152,6 +156,9 @@ public class JNRPosixAPITest {
             assertEquals("1-1", jnr.sched_getaffinity_summary(jnr.gettid()));
             assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 2, 4));
             assertEquals("2-4", jnr.sched_getaffinity_summary(jnr.gettid()));
+        } catch (UnsatisfiedLinkError ignore) {
+            assumeTrue(false);
+
         } finally {
             assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 0, jnr.get_nprocs_conf()));
         }
