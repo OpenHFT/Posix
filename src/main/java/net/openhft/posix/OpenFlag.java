@@ -1,6 +1,6 @@
 package net.openhft.posix;
 
-public enum OpenFlags {
+public enum OpenFlag {
     O_RDONLY(0x0000),        /* open for reading only */
     O_WRONLY(0x0001),        /* open for writing only */
     O_RDWR(0x0002),        /* open for reading and writing */
@@ -14,13 +14,13 @@ public enum OpenFlags {
     O_TRUNC(0x0400),        /* truncate to zero length */
     O_EXCL(0x0800);        /* error if already exists */
 
-    final int mode;
+    final int value;
 
-    OpenFlags(int mode) {
-        this.mode = mode;
+    OpenFlag(int value) {
+        this.value = value;
     }
 
-    public int mode() {
-        return mode;
+    public int value() {
+        return value;
     }
 }

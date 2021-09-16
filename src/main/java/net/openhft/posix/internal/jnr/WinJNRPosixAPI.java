@@ -30,6 +30,10 @@ public class WinJNRPosixAPI implements PosixAPI {
         return jnr._open(path, flags, perm);
     }
 
+    @Override
+    public long lseek(int fd, long offset, int whence) {
+        return -1;
+    }
 
     @Override
     public long read(int fd, long dst, long len) {

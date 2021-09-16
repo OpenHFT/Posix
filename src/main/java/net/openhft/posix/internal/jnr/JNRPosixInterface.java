@@ -9,6 +9,10 @@ public interface JNRPosixInterface {
 
     long write(int fd, long src, long len);
 
+    long lseek(int fd, long offset, int whence);
+
+    int lockf(int fd, int cmd, long len);
+
     int ftruncate(int fd, long offset);
 
     int fallocate(int fd, int mode, long offset, long length);

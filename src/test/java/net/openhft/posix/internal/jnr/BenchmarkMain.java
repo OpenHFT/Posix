@@ -68,14 +68,14 @@ public class BenchmarkMain {
         final File file = new File(filename);
         file.delete();
         file.createNewFile();
-        final int fd = jnr.open(filename, OpenFlags.O_RDWR.mode(), 0666);
+        final int fd = jnr.open(filename, OpenFlag.O_RDWR.mode(), 0666);
         final long length = 1L << 30;
         int err = jnr.ftruncate(fd, length);
         assertEquals(0, err);
 
         assertEquals(0, jnr.du(filename));
 
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, fd, 0L);
+        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
         assertNotEquals(-1, addr);
 
         int err4 = jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL);
@@ -139,8 +139,8 @@ public class BenchmarkMain {
             jnr.sched_setaffinity_as(jnr.gettid(), 14);
 
             long warmup = 1_000_000;
-            final int rfd = jnr.open(filename, OpenFlags.O_RDWR.mode(), 0666);
-            long raddr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, rfd, 0L);
+            final int rfd = jnr.open(filename, OpenFlag.O_RDWR.mode(), 0666);
+            long raddr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, rfd, 0L);
             Histogram readToWrite = new Histogram();
             Histogram readTime = new Histogram();
             for (long i = 0; i < length; i += SIZE) {

@@ -8,13 +8,13 @@ public enum MMapProt {
     PROT_EXEC_READ(5),
     PROT_NONE(8);
 
-    final int mode;
+    final int value;
 
-    MMapProt(int mode) {
-        this.mode = mode;
+    MMapProt(int value) {
+        this.value = value;
     }
 
-    public int mode() {
-        return mode;
+    public int value() {
+        return value;
     }
 }

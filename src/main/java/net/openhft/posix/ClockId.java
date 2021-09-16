@@ -13,13 +13,13 @@ public enum ClockId {
     CLOCK_BOOTTIME_ALARM(9),
     CLOCK_SGI_CYCLE(10);
 
-    private final int mode;
+    private final int value;
 
-    ClockId(int mode) {
-        this.mode = mode;
+    ClockId(int value) {
+        this.value = value;
     }
 
-    public int mode() {
-        return mode;
+    public int value() {
+        return value;
     }
 }

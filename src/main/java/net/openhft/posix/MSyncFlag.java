@@ -5,13 +5,13 @@ public enum MSyncFlag {
     MS_INVALIDATE(2),
     MS_ASYNC(4);
 
-    private final int mode;
+    private final int value;
 
-    MSyncFlag(int mode) {
-        this.mode = mode;
+    MSyncFlag(int value) {
+        this.value = value;
     }
 
-    public int mode() {
-        return mode;
+    public int value() {
+        return value;
     }
 }

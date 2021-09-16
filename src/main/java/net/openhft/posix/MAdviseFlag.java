@@ -18,13 +18,13 @@ public enum MAdviseFlag {
     MADV_DODUMP(17),        /* Clear the MADV_DONTDUMP flag.  */
     MADV_WIPEONFORK(18),        /* Zero memory on fork, child only.  */
     MADV_KEEPONFORK(19);        /* Undo MADV_WIPEONFORK.  */
-    final int mode;
+    final int value;
 
-    MAdviseFlag(int mode) {
-        this.mode = mode;
+    MAdviseFlag(int value) {
+        this.value = value;
     }
 
-    public int mode() {
-        return mode;
+    public int value() {
+        return value;
     }
 }

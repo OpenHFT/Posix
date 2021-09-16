@@ -41,7 +41,14 @@ public class JNRPosixAPITest {
     @Test
     public void open() throws IOException {
         final Path file = Files.createTempFile("open", ".test");
-        final int fd = jnr.open(file.toString(), OpenFlags.O_RDWR, 0666);
+        final int fd = jnr.open(file.toString(), OpenFlag.O_RDWR, 0666);
+        assertEquals(0, jnr.lseek(fd, 0, WhenceFlag.SEEK_SET));
+        assertEquals(-1, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
+        assertEquals(0, jnr.ftruncate(fd, 4096));
+        assertEquals(16, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
+        assertEquals(4095, jnr.lseek(fd, 4095, WhenceFlag.SEEK_DATA));
+        assertEquals(-1, jnr.lseek(fd, 4096, WhenceFlag.SEEK_DATA));
+
         int err = jnr.close(fd);
         assertEquals(0, err);
         assertTrue(file.toFile().exists());
@@ -59,14 +66,14 @@ public class JNRPosixAPITest {
         assumeTrue(new File("/proc/self").exists());
         final Path file = Files.createTempFile("mmap", ".test");
         final String filename = file.toAbsolutePath().toString();
-        final int fd = jnr.open(filename, OpenFlags.O_RDWR, 0666);
+        final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
         final long length = 1L << 16;
         int err = jnr.ftruncate(fd, length);
         assertEquals(0, err);
 
         assertEquals(0, jnr.du(filename));
 
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlags.SHARED, fd, 0L);
+        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
         assertNotEquals(-1, addr);
 
         int err4 = jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL);

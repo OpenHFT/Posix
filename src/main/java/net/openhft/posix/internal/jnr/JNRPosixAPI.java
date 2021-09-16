@@ -6,7 +6,6 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
-import net.openhft.posix.MSyncFlag;
 import net.openhft.posix.PosixAPI;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
@@ -33,8 +32,18 @@ public class JNRPosixAPI implements PosixAPI {
     }
 
     @Override
+    public long lseek(int fd, long offset, int whence) {
+        return jnr.lseek(fd, offset, whence);
+    }
+
+    @Override
     public int ftruncate(int fd, long offset) {
         return jnr.ftruncate(fd, offset);
+    }
+
+    @Override
+    public int lockf(int fd, int cmd, long len) {
+        return jnr.lockf(fd, cmd, len);
     }
 
     @Override
@@ -60,11 +69,6 @@ public class JNRPosixAPI implements PosixAPI {
     @Override
     public int munmap(long addr, long length) {
         return jnr.munmap(addr, length);
-    }
-
-    @Override
-    public boolean msyncSupported(MSyncFlag mode) {
-        return true;
     }
 
     @Override

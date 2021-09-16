@@ -23,32 +23,36 @@ public interface PosixAPI {
 
     int ftruncate(int fd, long offset);
 
+    default long lseek(int fd, long offset, WhenceFlag whence) {
+        return lseek(fd, offset, whence.value());
+    }
+
+    long lseek(int fd, long offset, int whence);
+
+    int lockf(int fd, int cmd, long len);
+
     default int madvise(long addr, long length, MAdviseFlag advice) {
-        return madvise(addr, length, advice.mode());
+        return madvise(addr, length, advice.value());
     }
 
     int madvise(long addr, long length, int advice);
 
-    default long mmap(long addr, long length, MMapProt prot, MMapFlags flags, int fd, long offset) {
-        return mmap(addr, length, prot.mode(), flags.mode(), fd, offset);
+    default long mmap(long addr, long length, MMapProt prot, MMapFlag flags, int fd, long offset) {
+        return mmap(addr, length, prot.value(), flags.value(), fd, offset);
     }
 
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 
-    default boolean msyncSupported(MSyncFlag mode) {
-        return false;
-    }
-
     default int msync(long address, long length, MSyncFlag flags) {
-        return msync(address, length, flags.mode());
+        return msync(address, length, flags.value());
     }
 
     int msync(long address, long length, int mode);
 
     int munmap(long addr, long length);
 
-    default int open(CharSequence path, OpenFlags flags, int perm) {
-        return open(path, flags.mode(), perm);
+    default int open(CharSequence path, OpenFlag flags, int perm) {
+        return open(path, flags.value(), perm);
     }
 
     int open(CharSequence path, int flags, int perm);
@@ -173,7 +177,7 @@ public interface PosixAPI {
     }
 
     default long clock_gettime(ClockId clockId) throws IllegalArgumentException {
-        return clock_gettime(clockId.mode());
+        return clock_gettime(clockId.value());
     }
 
     long clock_gettime(int clockId) throws IllegalArgumentException;
