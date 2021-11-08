@@ -6,7 +6,9 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
-import net.openhft.posix.PosixAPI;
+import net.openhft.posix.*;
+
+import java.io.IOException;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -51,6 +53,17 @@ public class JNRPosixAPI implements PosixAPI {
         return jnr.close(fd);
     }
 
+    static final boolean MOCKALL_DUMP = Boolean.getBoolean("mlockall.dump");
+
+    private static RuntimeException throwPosixException(String msg) {
+        final int lastError = RUNTIME.getLastError();
+        for (Errno errno : Errno.values()) {
+            if (errno.intValue() == lastError)
+                throw new PosixRuntimeException(errno.toString());
+        }
+        throw new PosixRuntimeException(msg + "unknown error " + lastError);
+    }
+
     @Override
     public long mmap(long addr, long length, int prot, int flags, int fd, long offset) {
 
@@ -60,10 +73,59 @@ public class JNRPosixAPI implements PosixAPI {
             final int lastError = RUNTIME.getLastError();
             for (Errno errno : Errno.values()) {
                 if (errno.intValue() == lastError)
-                    throw new RuntimeException(errno.toString());
+                    throw new PosixRuntimeException(errno.toString());
             }
         }
         return mmap;
+    }
+
+    @Override
+    public boolean mlock(long addr, long length, boolean lockOnFault) {
+        int err = jnr.mlock2(addr, length, lockOnFault ? 1 : 0);
+        if (err == 0)
+            return true;
+        if (err == Errno.ENOMEM.intValue())
+            return false;
+        throw throwPosixException("mlock length: " + length + " ");
+    }
+
+    @Override
+    public void mlockall(int flags) {
+        if (flags == MclFlag.MclCurrent.code()
+                || flags == MclFlag.MclCurrentOnFault.code()) {
+            tryMLockAll(flags);
+            return;
+        }
+        int err = jnr.mlockall(flags);
+        if (err == 0)
+            return;
+        throw throwPosixException("mlockall ");
+    }
+
+    private void tryMLockAll(int flags) {
+        try {
+            ProcMaps map = ProcMaps.forSelf();
+            boolean onFault = flags == MclFlag.MclCurrentOnFault.code();
+            for (Mapping mapping : map.list()) {
+                if (mapping.perms().equals("---p"))
+                    continue;
+                int ret = jnr.mlock2(mapping.addr(), mapping.length(), onFault ? 1 : 0);
+                if (!MOCKALL_DUMP)
+                    continue;
+                final long kb = mapping.length() / 1024;
+                if (ret != 0) {
+                    final int lastError = RUNTIME.getLastError();
+                    for (Errno errno : Errno.values()) {
+                        if (errno.intValue() == lastError)
+                            System.out.println(mapping + "len: " + kb + " KiB " + " " + errno);
+                    }
+                } else {
+                    System.out.println(mapping + "len: " + kb + " KiB " + (onFault ? " mlocked (on fault)" : " mlocked (current pages)"));
+                }
+            }
+        } catch (IOException ioe) {
+            throw new PosixRuntimeException(ioe);
+        }
     }
 
     @Override

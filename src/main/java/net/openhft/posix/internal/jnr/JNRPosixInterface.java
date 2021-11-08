@@ -48,4 +48,8 @@ public interface JNRPosixInterface {
     String strerror(int errno);
 
     int clock_gettime(int clockId, long ptr);
+
+    int mlock2(long addr, long length, int flags);
+
+    int mlockall(int flags);
 }

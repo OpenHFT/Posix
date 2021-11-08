@@ -43,6 +43,20 @@ public interface PosixAPI {
 
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 
+    /**
+     * @return if there was enough memory or not. Check ulimit -l if this returns false
+     */
+    default boolean mlock(long addr, long length, boolean lockOnFault) {
+        return false;
+    }
+
+    default void mlockall(MclFlag flags) {
+        mlockall(flags.code());
+    }
+
+    default void mlockall(int flags) {
+    }
+
     default int msync(long address, long length, MSyncFlag flags) {
         return msync(address, length, flags.value());
     }

@@ -104,6 +104,34 @@ public class JNRPosixAPITest {
     }
 
     @Test
+    public void mlockall() {
+        PosixAPI.posix().mlockall(MclFlag.MclCurrent);
+    }
+
+    @Test
+    public void mlock() throws IOException {
+        assumeTrue(new File("/proc/self").exists());
+        final Path file = Files.createTempFile("mmap", ".test");
+        final String filename = file.toAbsolutePath().toString();
+        final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
+        final long length = 1L << 16;
+        int err = jnr.ftruncate(fd, length);
+        assertEquals(0, err);
+
+        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
+        assertNotEquals(-1, addr);
+
+        jnr.mlock(addr, length, true);
+
+        int err1 = jnr.munmap(addr, length);
+        assertEquals(0, err1);
+        int err2 = jnr.close(fd);
+        assertEquals(0, err2);
+        assertTrue(file.toFile().exists());
+        file.toFile().delete();
+    }
+
+    @Test
     public void gettimeofday() {
         long time = jnr.gettimeofday();
         assertNotEquals(0, time);
