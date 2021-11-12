@@ -6,7 +6,9 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
+import net.openhft.chronicle.core.OS;
 import net.openhft.posix.*;
+import net.openhft.chronicle.core.Jvm;
 
 import java.io.IOException;
 
@@ -18,7 +20,14 @@ public class JNRPosixAPI implements PosixAPI {
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
     static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
-    static final int SYS_mlock2 = 325; // mlock2 syscall value
+
+    static final int SYS_mlock2; // mlock2 syscall value
+    static {
+        // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
+        SYS_mlock2 = Jvm.isArm() ? 390
+                : !Jvm.is64bit() ? 376
+                : 325;
+    }
 
     private final JNRPosixInterface jnr;
     private int get_nprocs_conf = 0;
@@ -80,10 +89,15 @@ public class JNRPosixAPI implements PosixAPI {
         return mmap;
     }
 
+    private int mlock0(long addr, long length, boolean lockOnFault) {
+        // older glibc versions do not include a wrapper for mlock2, so use syscall
+        // macos doesn't support it at all - degrade to mlock
+        return OS.isMacOSX() ? jnr.mlock(addr, length) : jnr.syscall(SYS_mlock2, addr, length, lockOnFault ? 1 : 0);
+    }
+
     @Override
     public boolean mlock(long addr, long length, boolean lockOnFault) {
-        // older glibc versions do not include a wrapper for mlock2, so use syscall
-        int err = jnr.syscall(SYS_mlock2, addr, length, lockOnFault ? 1 : 0);
+        int err = mlock0(addr, length, lockOnFault);
         if (err == 0)
             return true;
         if (err == Errno.ENOMEM.intValue())
@@ -111,8 +125,7 @@ public class JNRPosixAPI implements PosixAPI {
             for (Mapping mapping : map.list()) {
                 if (mapping.perms().equals("---p"))
                     continue;
-                // older glibc versions do not include a wrapper for mlock2, so use syscall
-                int ret = jnr.syscall(SYS_mlock2, mapping.addr(), mapping.length(), onFault ? 1 : 0);
+                int ret = mlock0(mapping.addr(), mapping.length(), onFault);
                 if (!MOCKALL_DUMP)
                     continue;
                 final long kb = mapping.length() / 1024;
