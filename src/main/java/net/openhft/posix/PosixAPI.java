@@ -46,7 +46,11 @@ public interface PosixAPI {
     /**
      * @return if there was enough memory or not. Check ulimit -l if this returns false
      */
-    default boolean mlock(long addr, long length, boolean lockOnFault) {
+    default boolean mlock(long addr, long length) {
+        return false;
+    }
+
+    default boolean mlock2(long addr, long length, boolean lockOnFault) {
         return false;
     }
 
