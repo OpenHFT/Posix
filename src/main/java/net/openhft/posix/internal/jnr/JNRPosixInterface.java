@@ -49,7 +49,10 @@ public interface JNRPosixInterface {
 
     int clock_gettime(int clockId, long ptr);
 
+    int mlock(long addr, long length);
     int mlock2(long addr, long length, int flags);
 
     int mlockall(int flags);
+
+    int syscall(int number, long arg1, long arg2, int arg3);
 }

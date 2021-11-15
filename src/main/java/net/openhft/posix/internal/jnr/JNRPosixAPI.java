@@ -6,7 +6,9 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
+import net.openhft.chronicle.core.OS;
 import net.openhft.posix.*;
+import net.openhft.chronicle.core.Jvm;
 
 import java.io.IOException;
 
@@ -18,6 +20,15 @@ public class JNRPosixAPI implements PosixAPI {
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
     static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
+
+    static final int MLOCK_ONFAULT = 1;
+    static final int SYS_mlock2; // mlock2 syscall value
+    static {
+        // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
+        SYS_mlock2 = Jvm.isArm() ? 390
+                : !Jvm.is64bit() ? 376
+                : 325;
+    }
 
     private final JNRPosixInterface jnr;
     private int get_nprocs_conf = 0;
@@ -79,14 +90,34 @@ public class JNRPosixAPI implements PosixAPI {
         return mmap;
     }
 
+    private int mlock2_(long addr, long length, boolean lockOnFault) {
+        // degrade to mlock for all platforms if lockOnFault not set
+        // or always for macos which doesn't support mlock2 at all
+        if(!lockOnFault || OS.isMacOSX())
+            return jnr.mlock(addr, length);
+
+        // older glibc versions do not include a wrapper for mlock2, so use syscall for generality
+        return jnr.syscall(SYS_mlock2, addr, length, MLOCK_ONFAULT);
+    }
+
     @Override
-    public boolean mlock(long addr, long length, boolean lockOnFault) {
-        int err = jnr.mlock2(addr, length, lockOnFault ? 1 : 0);
+    public boolean mlock(long addr, long length) {
+        int err = jnr.mlock(addr, length);
         if (err == 0)
             return true;
         if (err == Errno.ENOMEM.intValue())
             return false;
         throw throwPosixException("mlock length: " + length + " ");
+    }
+
+    @Override
+    public boolean mlock2(long addr, long length, boolean lockOnFault) {
+        int err = mlock2_(addr, length, lockOnFault);
+        if (err == 0)
+            return true;
+        if (err == Errno.ENOMEM.intValue())
+            return false;
+        throw throwPosixException("mlock2 length: " + length + " ");
     }
 
     @Override
@@ -109,7 +140,7 @@ public class JNRPosixAPI implements PosixAPI {
             for (Mapping mapping : map.list()) {
                 if (mapping.perms().equals("---p"))
                     continue;
-                int ret = jnr.mlock2(mapping.addr(), mapping.length(), onFault ? 1 : 0);
+                int ret = mlock2_(mapping.addr(), mapping.length(), onFault);
                 if (!MOCKALL_DUMP)
                     continue;
                 final long kb = mapping.length() / 1024;
