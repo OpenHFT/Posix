@@ -199,6 +199,11 @@ public class JNRPosixAPITest {
                 .distinct()
                 .toArray();
         assertTrue(Arrays.toString(ints), ints.length > 1);
+
+        if (new File("/proc").isDirectory()) {
+            final int gettid = jnr.gettid();
+            assertTrue(new File("/proc/self/task/" + gettid).exists());
+        }
     }
 
     @Test
