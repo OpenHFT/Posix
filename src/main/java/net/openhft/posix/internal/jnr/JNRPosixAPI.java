@@ -220,12 +220,18 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int sched_setaffinity(int pid, int cpusetsize, long mask) {
-        return jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        int ret = jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        if (ret != 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
     public int sched_getaffinity(int pid, int cpusetsize, long mask) {
-        return jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        int ret = jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        if (ret != 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
@@ -235,7 +241,7 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int gettid() {
-        return jnr.gettid();
+        return Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
     }
 
     @Override
