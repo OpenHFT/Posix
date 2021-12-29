@@ -2,6 +2,7 @@ package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
 import net.openhft.posix.*;
+import net.openhft.posix.internal.core.Jvm;
 import org.junit.Test;
 
 import java.io.File;
@@ -156,11 +157,14 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettimeofday() {
+        long firstCallIsSlow1 = jnr.gettimeofday();
+        long firstCallIsSlow2 = jnr.clock_gettime();
+
         long time = jnr.gettimeofday();
+        long clock_gettime = jnr.clock_gettime();
         assertNotEquals(0, time);
-        assertEquals(System.currentTimeMillis() * 1_000, time, 2000);
-        assertEquals(jnr.clock_gettime() / 1000.0, time, 1000);
-        System.out.println(time);
+        assertEquals(System.currentTimeMillis() * 1_000L, time, 2_000);
+        assertEquals(clock_gettime / 1000.0, time, 1_000);
     }
 
     @Test
@@ -195,6 +199,7 @@ public class JNRPosixAPITest {
                     .toArray();
             assertTrue(Arrays.toString(ints), ints.length > 1);
         } catch (UnsatisfiedLinkError ignore) {
+
             assumeTrue(false);
         }
     }

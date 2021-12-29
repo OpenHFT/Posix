@@ -1,6 +1,7 @@
 package net.openhft.posix;
 
 import net.openhft.posix.internal.PosixAPIHolder;
+import net.openhft.posix.internal.UnsafeMemory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -181,6 +182,8 @@ public interface PosixAPI {
         try {
             if (gettimeofday(ptr) != 0)
                 return 0;
+            if (UnsafeMemory.IS32BIT)
+                return (UNSAFE.getInt(ptr) & 0xFFFFFFFFL) * 1_000_000L + UNSAFE.getInt(ptr + 4);
             return UNSAFE.getLong(ptr) * 1_000_000 + UNSAFE.getInt(ptr + 8);
         } finally {
             free(ptr);
