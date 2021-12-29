@@ -241,7 +241,8 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int gettid() {
-        return Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
+//        return Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
+        return jnr.syscall(224);
     }
 
     @Override
