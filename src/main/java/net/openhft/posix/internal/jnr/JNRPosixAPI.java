@@ -12,6 +12,7 @@ import net.openhft.posix.internal.core.Jvm;
 import net.openhft.posix.internal.core.OS;
 
 import java.io.IOException;
+import java.util.function.IntSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -28,17 +29,32 @@ public class JNRPosixAPI implements PosixAPI {
     static {
         // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
         SYS_mlock2 = Jvm.isArm() ? 390
-                : !Jvm.is64bit() ? 376
-                : 325;
+                : Jvm.is64bit() ? 325 : 376;
     }
 
     private final JNRPosixInterface jnr;
-    private int get_nprocs_conf = 0;
+
+    private final IntSupplier gettid;
 
     public JNRPosixAPI() {
         LibraryLoader<JNRPosixInterface> loader = LibraryLoader.create(JNRPosixInterface.class);
         loader.library(STANDARD_C_LIBRARY_NAME);
         jnr = loader.load();
+        gettid = getGettid();
+    }
+
+    private int get_nprocs_conf = 0;
+
+    private IntSupplier getGettid() {
+        try {
+            jnr.gettid();
+            return jnr::gettid;
+        } catch (UnsatisfiedLinkError expected) {
+            // ignored
+        }
+        if (UnsafeMemory.IS32BIT)
+            return () -> jnr.syscall(224);
+        return () -> jnr.syscall(186);
     }
 
     @Override
@@ -241,7 +257,7 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int gettid() {
-        int ret = Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
+        int ret = gettid.getAsInt();
         if (ret < 0)
             throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
         return ret;
