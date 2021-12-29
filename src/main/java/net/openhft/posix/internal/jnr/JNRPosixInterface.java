@@ -54,7 +54,7 @@ public interface JNRPosixInterface {
 
     int mlockall(int flags);
 
-//    int syscall(int number);
+    int syscall(int number);
 
     int syscall(int number, long arg1, long arg2, int arg3);
 }
