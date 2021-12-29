@@ -6,11 +6,13 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
-import net.openhft.chronicle.core.OS;
 import net.openhft.posix.*;
-import net.openhft.chronicle.core.Jvm;
+import net.openhft.posix.internal.UnsafeMemory;
+import net.openhft.posix.internal.core.Jvm;
+import net.openhft.posix.internal.core.OS;
 
 import java.io.IOException;
+import java.util.function.IntSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -23,20 +25,36 @@ public class JNRPosixAPI implements PosixAPI {
 
     static final int MLOCK_ONFAULT = 1;
     static final int SYS_mlock2; // mlock2 syscall value
+
     static {
         // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
         SYS_mlock2 = Jvm.isArm() ? 390
-                : !Jvm.is64bit() ? 376
-                : 325;
+                : Jvm.is64bit() ? 325 : 376;
     }
 
     private final JNRPosixInterface jnr;
-    private int get_nprocs_conf = 0;
+
+    private final IntSupplier gettid;
 
     public JNRPosixAPI() {
         LibraryLoader<JNRPosixInterface> loader = LibraryLoader.create(JNRPosixInterface.class);
         loader.library(STANDARD_C_LIBRARY_NAME);
         jnr = loader.load();
+        gettid = getGettid();
+    }
+
+    private int get_nprocs_conf = 0;
+
+    private IntSupplier getGettid() {
+        try {
+            jnr.gettid();
+            return jnr::gettid;
+        } catch (UnsatisfiedLinkError expected) {
+            // ignored
+        }
+        if (UnsafeMemory.IS32BIT)
+            return () -> jnr.syscall(224);
+        return () -> jnr.syscall(186);
     }
 
     @Override
@@ -93,7 +111,7 @@ public class JNRPosixAPI implements PosixAPI {
     private int mlock2_(long addr, long length, boolean lockOnFault) {
         // degrade to mlock for all platforms if lockOnFault not set
         // or always for macos which doesn't support mlock2 at all
-        if(!lockOnFault || OS.isMacOSX())
+        if (!lockOnFault || OS.isMacOSX())
             return jnr.mlock(addr, length);
 
         // older glibc versions do not include a wrapper for mlock2, so use syscall for generality
@@ -218,12 +236,18 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int sched_setaffinity(int pid, int cpusetsize, long mask) {
-        return jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        int ret = jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        if (ret != 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
     public int sched_getaffinity(int pid, int cpusetsize, long mask) {
-        return jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        int ret = jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
+        if (ret != 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
@@ -233,7 +257,10 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int gettid() {
-        return jnr.gettid();
+        int ret = gettid.getAsInt();
+        if (ret < 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
@@ -253,7 +280,9 @@ public class JNRPosixAPI implements PosixAPI {
             int ret = jnr.clock_gettime(clockId, ptr);
             if (ret != 0)
                 throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
-            return UNSAFE.getLong(ptr) * 1_000_000_000 + UNSAFE.getLong(ptr + 8);
+            if (UnsafeMemory.IS32BIT)
+                return (UNSAFE.getInt(ptr) & 0xFFFFFFFFL) * 1_000_000_000L + UNSAFE.getInt(ptr + 4);
+            return UNSAFE.getLong(ptr) * 1_000_000_000L + UNSAFE.getInt(ptr + 8);
         } finally {
             free(ptr);
         }

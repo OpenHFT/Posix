@@ -2,6 +2,7 @@ package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
 import net.openhft.posix.*;
+import net.openhft.posix.internal.core.OS;
 import org.junit.Test;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 public class JNRPosixAPITest {
@@ -156,11 +158,14 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettimeofday() {
+        long firstCallIsSlow1 = jnr.gettimeofday();
+        long firstCallIsSlow2 = jnr.clock_gettime();
+
         long time = jnr.gettimeofday();
+        long clock_gettime = jnr.clock_gettime();
         assertNotEquals(0, time);
-        assertEquals(System.currentTimeMillis() * 1_000, time, 2000);
-        assertEquals(jnr.clock_gettime() / 1000.0, time, 1000);
-        System.out.println(time);
+        assertEquals(System.currentTimeMillis() * 1_000L, time, 2_000);
+        assertEquals(clock_gettime / 1000.0, time, 1_000);
     }
 
     @Test
@@ -185,36 +190,32 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettid() {
-        try {
-            final int nprocs = jnr.get_nprocs();
-            final int[] ints = IntStream.range(0, nprocs * 101)
-                    .parallel()
-                    .map(i -> jnr.gettid())
-                    .sorted()
-                    .distinct()
-                    .toArray();
-            assertTrue(Arrays.toString(ints), ints.length > 1);
-        } catch (UnsatisfiedLinkError ignore) {
-            assumeTrue(false);
+        assumeFalse(OS.isMacOSX());
+        final int nprocs = jnr.get_nprocs();
+        final int[] ints = IntStream.range(0, nprocs * 101)
+                .parallel()
+                .map(i -> jnr.gettid())
+                .sorted()
+                .distinct()
+                .toArray();
+        assertTrue(Arrays.toString(ints), ints.length > 1);
+
+        if (new File("/proc").isDirectory()) {
+            final int gettid = jnr.gettid();
+            assertTrue(new File("/proc/self/task/" + gettid).exists());
         }
     }
 
     @Test
     public void setaffinity() {
         assumeTrue(jnr instanceof JNRPosixAPI);
-        try {
-            try {
-                assertEquals(0, jnr.sched_setaffinity_as(jnr.gettid(), 1));
-                assertEquals("1-1", jnr.sched_getaffinity_summary(jnr.gettid()));
-                assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 2, 4));
-                assertEquals("2-4", jnr.sched_getaffinity_summary(jnr.gettid()));
 
-            } finally {
-                assertEquals(0, jnr.sched_setaffinity_range(jnr.gettid(), 0, jnr.get_nprocs_conf()));
-            }
-        } catch (UnsatisfiedLinkError ignore) {
-            assumeTrue(false);
-        }
+        int gettid = jnr.gettid();
+        assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
+        assertEquals("1-1", jnr.sched_getaffinity_summary(gettid));
+        assertEquals(0, jnr.sched_setaffinity_range(gettid, 2, 3));
+        assertEquals("2-3", jnr.sched_getaffinity_summary(gettid));
+        assertEquals(0, jnr.sched_setaffinity_range(gettid, 0, jnr.get_nprocs_conf()));
     }
 
     @Test

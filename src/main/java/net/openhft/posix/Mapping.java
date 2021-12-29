@@ -1,5 +1,7 @@
 package net.openhft.posix;
 
+import net.openhft.posix.internal.UnsafeMemory;
+
 public class Mapping {
     private final long addr, length, offset, inode;
     private final String perms, device, path;
@@ -8,8 +10,9 @@ public class Mapping {
     public Mapping(String line) {
         String[] parts = line.split(" +");
         String[] addrs = parts[0].split("\\-");
-        addr = Long.parseUnsignedLong(addrs[0], 16);
-        length = Long.parseUnsignedLong(addrs[1], 16) - addr;
+        long addr0 = Long.parseUnsignedLong(addrs[0], 16);
+        this.addr = UnsafeMemory.IS32BIT ? (int) addr0 : addr0;
+        length = Long.parseUnsignedLong(addrs[1], 16) - addr0;
         perms = parts[1];
         offset = Long.parseUnsignedLong(parts[2], 16);
         device = parts[3];
