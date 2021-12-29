@@ -242,7 +242,10 @@ public class JNRPosixAPI implements PosixAPI {
     @Override
     public int gettid() {
 //        return Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
-        return jnr.syscall(224);
+        int ret = jnr.syscall(224);
+        if (ret < 0)
+            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
+        return ret;
     }
 
     @Override
