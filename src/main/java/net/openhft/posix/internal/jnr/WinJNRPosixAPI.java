@@ -32,7 +32,7 @@ public class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public long lseek(int fd, long offset, int whence) {
-        return -1;
+        return jnr._lseeki64(fd, offset, whence);
     }
 
     @Override

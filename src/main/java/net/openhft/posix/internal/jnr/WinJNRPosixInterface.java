@@ -12,6 +12,8 @@ public interface WinJNRPosixInterface {
 
     int _open(CharSequence path, int flags, int perm);
 
+    long _lseeki64(int fd, long offset, int origin);
+
     long _read(int fd, long dst, long len);
 
     long _write(int fd, long src, long len);
