@@ -1,13 +1,12 @@
 package net.openhft.posix.internal.jnr;
 
-import jnr.ffi.LibraryLoader;
 import jnr.ffi.Platform;
 import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.PosixAPI;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
-public class WinJNRPosixAPI implements PosixAPI {
+public final class WinJNRPosixAPI implements PosixAPI {
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final Platform NATIVE_PLATFORM = Platform.getNativePlatform();
@@ -17,12 +16,8 @@ public class WinJNRPosixAPI implements PosixAPI {
     private final Kernel32JNRInterface kernel32;
 
     public WinJNRPosixAPI() {
-        LibraryLoader<WinJNRPosixInterface> loader = LibraryLoader.create(WinJNRPosixInterface.class);
-        loader.library(STANDARD_C_LIBRARY_NAME);
-        jnr = loader.load();
-        LibraryLoader<Kernel32JNRInterface> loader2 = LibraryLoader.create(Kernel32JNRInterface.class);
-        loader2.library("Kernel32");
-        kernel32 = loader2.load();
+        jnr = LibraryUtil.load(WinJNRPosixInterface.class, STANDARD_C_LIBRARY_NAME);
+        kernel32 = LibraryUtil.load(Kernel32JNRInterface.class, "Kernel32");
     }
 
     @Override

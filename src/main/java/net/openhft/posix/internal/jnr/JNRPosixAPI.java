@@ -1,7 +1,6 @@
 package net.openhft.posix.internal.jnr;
 
 import jnr.constants.platform.Errno;
-import jnr.ffi.LibraryLoader;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
@@ -16,7 +15,7 @@ import java.util.function.IntSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
-public class JNRPosixAPI implements PosixAPI {
+public final class JNRPosixAPI implements PosixAPI {
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
@@ -37,9 +36,7 @@ public class JNRPosixAPI implements PosixAPI {
     private final IntSupplier gettid;
 
     public JNRPosixAPI() {
-        LibraryLoader<JNRPosixInterface> loader = LibraryLoader.create(JNRPosixInterface.class);
-        loader.library(STANDARD_C_LIBRARY_NAME);
-        jnr = loader.load();
+        jnr = LibraryUtil.load(JNRPosixInterface.class, STANDARD_C_LIBRARY_NAME);
         gettid = getGettid();
     }
 
