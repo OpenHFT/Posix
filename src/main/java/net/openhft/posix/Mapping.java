@@ -2,16 +2,21 @@ package net.openhft.posix;
 
 import net.openhft.posix.internal.UnsafeMemory;
 
-public class Mapping {
-    private final long addr, length, offset, inode;
-    private final String perms, device, path;
+public final class Mapping {
+    private final long addr;
+    private final long length;
+    private final long offset;
+    private final long inode;
+    private final String perms;
+    private final String device;
+    private final String path;
     private final String toString;
 
     public Mapping(String line) {
         String[] parts = line.split(" +");
         String[] addrs = parts[0].split("\\-");
         long addr0 = Long.parseUnsignedLong(addrs[0], 16);
-        this.addr = UnsafeMemory.IS32BIT ? (int) addr0 : addr0;
+        addr = UnsafeMemory.IS32BIT ? (int) addr0 : addr0;
         length = Long.parseUnsignedLong(addrs[1], 16) - addr0;
         perms = parts[1];
         offset = Long.parseUnsignedLong(parts[2], 16);
