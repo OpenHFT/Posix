@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-public class ProcMaps {
+import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.*;
+
+public final class ProcMaps {
     private final List<Mapping> mappingList = new ArrayList<>();
 
     private ProcMaps(Object proc) throws IOException {
@@ -28,15 +30,20 @@ public class ProcMaps {
     }
 
     public List<Mapping> list() {
-        return mappingList;
+        return unmodifiableList(mappingList);
     }
 
-    public Mapping findFirst(Predicate<Mapping> test) {
-        return mappingList.stream().filter(test).findFirst().get();
+    public Mapping findFirst(Predicate<? super Mapping> test) {
+        return mappingList.stream()
+                .filter(test)
+                .findFirst()
+                .get();
     }
 
-    public List<Mapping> findAll(Predicate<Mapping> test) {
-        return mappingList.stream().filter(test).collect(Collectors.toList());
+    public List<Mapping> findAll(Predicate<? super Mapping> test) {
+        return mappingList.stream()
+                .filter(test)
+                .collect(toList());
     }
 
 }
