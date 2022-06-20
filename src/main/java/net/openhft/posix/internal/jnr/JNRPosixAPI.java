@@ -85,7 +85,7 @@ public final class JNRPosixAPI implements PosixAPI {
         final int lastError = RUNTIME.getLastError();
         for (Errno errno : Errno.values()) {
             if (errno.intValue() == lastError)
-                throw new PosixRuntimeException(errno.toString());
+                throw new PosixRuntimeException(msg + "error " + errno);
         }
         throw new PosixRuntimeException(msg + "unknown error " + lastError);
     }
