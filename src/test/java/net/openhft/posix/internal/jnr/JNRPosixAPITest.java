@@ -47,7 +47,7 @@ public class JNRPosixAPITest {
         assertEquals(0, jnr.lseek(fd, 0, WhenceFlag.SEEK_SET));
         assertEquals(-1, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
         assertEquals(0, jnr.ftruncate(fd, 4096));
-        if (jnr instanceof JNRPosixAPI) {
+        if (jnr instanceof JNRPosixAPI && !OS.isMacOSX()) {
             assertEquals(16, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
             assertEquals(4095, jnr.lseek(fd, 4095, WhenceFlag.SEEK_DATA));
             assertEquals(-1, jnr.lseek(fd, 4096, WhenceFlag.SEEK_DATA));
@@ -109,6 +109,8 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlockall() {
+        assumeFalse(OS.isMacOSX());
+
         PosixAPI.posix().mlockall(MclFlag.MclCurrent);
     }
 
@@ -172,6 +174,8 @@ public class JNRPosixAPITest {
 
     @Test
     public void get_nprod() {
+        assumeFalse(OS.isMacOSX());
+
         final int nprocs = jnr.get_nprocs();
         assertTrue(nprocs > 0);
         final int nprocs_conf = jnr.get_nprocs_conf();
@@ -180,6 +184,8 @@ public class JNRPosixAPITest {
 
     @Test
     public void getpid() {
+        assumeFalse(OS.isMacOSX());
+
         final int nprocs = jnr.get_nprocs();
         final int[] ints = IntStream.range(0, nprocs * 101)
                 .parallel()
@@ -210,7 +216,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue(jnr instanceof JNRPosixAPI);
+        assumeTrue(jnr instanceof JNRPosixAPI && !OS.isMacOSX());
 
         int gettid = jnr.gettid();
         assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
