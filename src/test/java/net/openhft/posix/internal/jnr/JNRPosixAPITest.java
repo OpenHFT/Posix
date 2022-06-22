@@ -2,7 +2,6 @@ package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
 import net.openhft.posix.*;
-import net.openhft.posix.internal.core.OS;
 import org.junit.Test;
 
 import java.io.File;
@@ -13,32 +12,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static net.openhft.posix.internal.core.OS.isMacOSX;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 public class JNRPosixAPITest {
 
-    static final PosixAPI jnr =
-            Platform.getNativePlatform().isUnix()
-                    ? new JNRPosixAPI()
-                    : new WinJNRPosixAPI();
-/*
-    static long blackhole;
-
-    public static void main(String[] args) {
-        for (ClockId clockId : new ClockId[]{ClockId.CLOCK_REALTIME, ClockId.CLOCK_REALTIME_COARSE, ClockId.CLOCK_REALTIME_ALARM}) {
-            for (int t = 0; t < 3; t++) {
-                long start = System.nanoTime();
-                int count = 100_000;
-                for (int i = 0; i < count; i++)
-                    blackhole = jnr.clock_gettime(clockId);
-                long avg = (System.nanoTime() - start) / count;
-                System.out.println(clockId + ": " + avg + " ns");
-            }
-        }
-    }
-*/
+    static final PosixAPI jnr = isUnix() ? new JNRPosixAPI() : new WinJNRPosixAPI();
 
     @Test
     public void open() throws IOException {
@@ -47,7 +28,8 @@ public class JNRPosixAPITest {
         assertEquals(0, jnr.lseek(fd, 0, WhenceFlag.SEEK_SET));
         assertEquals(-1, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
         assertEquals(0, jnr.ftruncate(fd, 4096));
-        if (jnr instanceof JNRPosixAPI && !OS.isMacOSX()) {
+        // 'lseek' on Windows and macOS doesn't support following behavior
+        if (isUnix() && !isMacOSX()) {
             assertEquals(16, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
             assertEquals(4095, jnr.lseek(fd, 4095, WhenceFlag.SEEK_DATA));
             assertEquals(-1, jnr.lseek(fd, 4096, WhenceFlag.SEEK_DATA));
@@ -109,7 +91,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlockall() {
-        assumeFalse(OS.isMacOSX());
+        assumeFalse("macOS doesn't support 'mlockall'", isMacOSX());
 
         PosixAPI.posix().mlockall(MclFlag.MclCurrent);
     }
@@ -173,8 +155,8 @@ public class JNRPosixAPITest {
     }
 
     @Test
-    public void get_nprod() {
-        assumeFalse(OS.isMacOSX());
+    public void get_nprocs() {
+        assumeFalse("macOS doesn't support 'get_nprocs'", isMacOSX());
 
         final int nprocs = jnr.get_nprocs();
         assertTrue(nprocs > 0);
@@ -184,7 +166,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void getpid() {
-        assumeFalse(OS.isMacOSX());
+        assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
 
         final int nprocs = jnr.get_nprocs();
         final int[] ints = IntStream.range(0, nprocs * 101)
@@ -198,7 +180,8 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettid() {
-        assumeFalse(OS.isMacOSX());
+        assumeFalse("macOS doesn't support 'gettid'", isMacOSX());
+
         final int nprocs = jnr.get_nprocs();
         final int[] ints = IntStream.range(0, nprocs * 101)
                 .parallel()
@@ -216,7 +199,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue(jnr instanceof JNRPosixAPI && !OS.isMacOSX());
+        assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
 
         int gettid = jnr.gettid();
         assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
@@ -228,7 +211,8 @@ public class JNRPosixAPITest {
 
     @Test
     public void clocks() {
-        assumeTrue(jnr instanceof JNRPosixAPI);
+        assumeTrue(isUnix());
+
         for (ClockId value : ClockId.values()) {
             try {
                 final long gettime = jnr.clock_gettime(value);
@@ -237,5 +221,9 @@ public class JNRPosixAPITest {
                 System.out.println(value + ": " + e);
             }
         }
+    }
+
+    private static boolean isUnix() {
+        return Platform.getNativePlatform().isUnix();
     }
 }
