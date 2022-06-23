@@ -117,6 +117,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock(long addr, long length) {
+        if(Jvm.isAzul()) return true; // no-op on Azul, ignore
         int err = jnr.mlock(addr, length);
         if (err == 0)
             return true;
@@ -127,6 +128,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
+        if(Jvm.isAzul()) return true; // no-op on Azul, ignore
         int err = mlock2_(addr, length, lockOnFault);
         if (err == 0)
             return true;
