@@ -187,7 +187,7 @@ public class JNRPosixAPITest {
     public void getpid() throws InterruptedException {
         assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
 
-        final int N = jnr.get_nprocs() * 101;
+        final int N = jnr.get_nprocs();
         assertEquals(1, poolIntReduce(N, jnr::getpid));
     }
 
@@ -196,7 +196,7 @@ public class JNRPosixAPITest {
     public void gettid() throws InterruptedException {
         assumeFalse("macOS doesn't support 'gettid'", isMacOSX());
 
-        final int N = jnr.get_nprocs() * 101;
+        final int N = jnr.get_nprocs();
         assertEquals(N, poolIntReduce(N, jnr::gettid));
 
         if (new File("/proc").isDirectory()) {
