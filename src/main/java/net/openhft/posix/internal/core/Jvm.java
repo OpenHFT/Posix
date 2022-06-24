@@ -11,6 +11,7 @@ public final class Jvm {
     private Jvm() {
     }
     static final String OS_ARCH = System.getProperty("os.arch", "?");
+    static final String VM_VENDOR = System.getProperty("java.vm.vendor", "?");
 
     public static boolean isArm() {
         return Boolean.parseBoolean(System.getProperty("jvm.isarm")) ||
@@ -19,5 +20,9 @@ public final class Jvm {
 
     public static boolean is64bit() {
         return UnsafeMemory.IS64BIT;
+    }
+
+    public static boolean isAzul() { 
+        return VM_VENDOR.startsWith("Azul ");
     }
 }
