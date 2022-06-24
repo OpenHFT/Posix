@@ -8,9 +8,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Supplier;
 
 import static net.openhft.posix.internal.core.OS.isMacOSX;
 import static org.junit.Assert.*;
@@ -164,32 +165,39 @@ public class JNRPosixAPITest {
         assertTrue(nprocs <= nprocs_conf);
     }
 
-    @Test
-    public void getpid() {
-        assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
+    /**
+     * Applies the given int supplier N times over N threads, adding each result to a set
+     * @return - the size of the set
+     */
+    int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {
+        final ConcurrentSkipListSet<Integer> items = new ConcurrentSkipListSet<>();
+        final ArrayList<Thread> threads = new ArrayList<>();
 
-        final int nprocs = jnr.get_nprocs();
-        final int[] ints = IntStream.range(0, nprocs * 101)
-                .parallel()
-                .map(i -> jnr.getpid())
-                .sorted()
-                .distinct()
-                .toArray();
-        assertEquals(Arrays.toString(ints), 1, ints.length);
+        for (int i = 0; i < N; ++i) {
+            Thread t = new Thread(() -> items.add(r.get()));
+            t.start();
+            threads.add(t);
+        }
+        for (Thread t : threads) t.join();
+
+        return items.size();
     }
 
     @Test
-    public void gettid() {
+    public void getpid() throws InterruptedException {
+        assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
+
+        final int N = jnr.get_nprocs();
+        assertEquals(1, poolIntReduce(N, jnr::getpid));
+    }
+
+
+    @Test
+    public void gettid() throws InterruptedException {
         assumeFalse("macOS doesn't support 'gettid'", isMacOSX());
 
-        final int nprocs = jnr.get_nprocs();
-        final int[] ints = IntStream.range(0, nprocs * 101)
-                .parallel()
-                .map(i -> jnr.gettid())
-                .sorted()
-                .distinct()
-                .toArray();
-        assertTrue(Arrays.toString(ints), ints.length > 1);
+        final int N = jnr.get_nprocs();
+        assertEquals(N, poolIntReduce(N, jnr::gettid));
 
         if (new File("/proc").isDirectory()) {
             final int gettid = jnr.gettid();
