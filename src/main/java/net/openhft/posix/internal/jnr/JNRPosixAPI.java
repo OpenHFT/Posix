@@ -9,6 +9,8 @@ import net.openhft.posix.*;
 import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.internal.core.Jvm;
 import net.openhft.posix.internal.core.OS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.function.IntSupplier;
@@ -16,6 +18,8 @@ import java.util.function.IntSupplier;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 public final class JNRPosixAPI implements PosixAPI {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JNRPosixAPI.class);
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
@@ -117,6 +121,11 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock(long addr, long length) {
+        if(Jvm.isAzul()) {
+            LOGGER.warn("mlock called but ignored for Azul");
+            return true; // no-op on Azul, ignore
+        }
+
         int err = jnr.mlock(addr, length);
         if (err == 0)
             return true;
@@ -127,6 +136,10 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
+        if(Jvm.isAzul()) {
+            LOGGER.warn("mlock2 called but ignored for Azul");
+            return true; // no-op on Azul, ignore
+        }
         int err = mlock2_(addr, length, lockOnFault);
         if (err == 0)
             return true;
