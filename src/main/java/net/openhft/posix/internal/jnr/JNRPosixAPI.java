@@ -1,7 +1,6 @@
 package net.openhft.posix.internal.jnr;
 
 import jnr.constants.platform.Errno;
-import jnr.ffi.LibraryLoader;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
@@ -10,12 +9,17 @@ import net.openhft.posix.*;
 import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.internal.core.Jvm;
 import net.openhft.posix.internal.core.OS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.function.IntSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
-public class JNRPosixAPI implements PosixAPI {
+public final class JNRPosixAPI implements PosixAPI {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JNRPosixAPI.class);
 
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
@@ -28,17 +32,30 @@ public class JNRPosixAPI implements PosixAPI {
     static {
         // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
         SYS_mlock2 = Jvm.isArm() ? 390
-                : !Jvm.is64bit() ? 376
-                : 325;
+                : Jvm.is64bit() ? 325 : 376;
     }
 
     private final JNRPosixInterface jnr;
-    private int get_nprocs_conf = 0;
+
+    private final IntSupplier gettid;
 
     public JNRPosixAPI() {
-        LibraryLoader<JNRPosixInterface> loader = LibraryLoader.create(JNRPosixInterface.class);
-        loader.library(STANDARD_C_LIBRARY_NAME);
-        jnr = loader.load();
+        jnr = LibraryUtil.load(JNRPosixInterface.class, STANDARD_C_LIBRARY_NAME);
+        gettid = getGettid();
+    }
+
+    private int get_nprocs_conf = 0;
+
+    private IntSupplier getGettid() {
+        try {
+            jnr.gettid();
+            return jnr::gettid;
+        } catch (UnsatisfiedLinkError expected) {
+            // ignored
+        }
+        if (UnsafeMemory.IS32BIT)
+            return () -> jnr.syscall(224);
+        return () -> jnr.syscall(186);
     }
 
     @Override
@@ -72,7 +89,7 @@ public class JNRPosixAPI implements PosixAPI {
         final int lastError = RUNTIME.getLastError();
         for (Errno errno : Errno.values()) {
             if (errno.intValue() == lastError)
-                throw new PosixRuntimeException(errno.toString());
+                throw new PosixRuntimeException(msg + "error " + errno);
         }
         throw new PosixRuntimeException(msg + "unknown error " + lastError);
     }
@@ -104,6 +121,11 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock(long addr, long length) {
+        if(Jvm.isAzul()) {
+            LOGGER.warn("mlock called but ignored for Azul");
+            return true; // no-op on Azul, ignore
+        }
+
         int err = jnr.mlock(addr, length);
         if (err == 0)
             return true;
@@ -114,6 +136,10 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
+        if(Jvm.isAzul()) {
+            LOGGER.warn("mlock2 called but ignored for Azul");
+            return true; // no-op on Azul, ignore
+        }
         int err = mlock2_(addr, length, lockOnFault);
         if (err == 0)
             return true;
@@ -241,7 +267,7 @@ public class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int gettid() {
-        int ret = Jvm.isArm() ? jnr.syscall(224) : jnr.gettid();
+        int ret = gettid.getAsInt();
         if (ret < 0)
             throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
         return ret;

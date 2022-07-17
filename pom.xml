@@ -5,13 +5,13 @@
     <parent>
         <groupId>net.openhft</groupId>
         <artifactId>java-parent-pom</artifactId>
-        <version>1.1.26</version>
+        <version>1.1.33</version>
         <relativePath />
     </parent>
 
     <groupId>net.openhft</groupId>
     <artifactId>posix</artifactId>
-    <version>2.22ea6-SNAPSHOT</version>
+    <version>2.23ea0-SNAPSHOT</version>
     <name>java-posix</name>
     <description>OpenHFT Java Posix APIs</description>
     <packaging>jar</packaging>
@@ -52,7 +52,7 @@
         <dependency>
             <groupId>com.github.jnr</groupId>
             <artifactId>jnr-ffi</artifactId>
-            <version>2.2.6</version>
+            <version>2.2.10</version>
         </dependency>
         <dependency>
             <groupId>com.github.jnr</groupId>
@@ -94,6 +94,9 @@
     <profiles>
         <profile>
             <id>java11</id>
+            <activation>
+                <jdk>[11,</jdk>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
