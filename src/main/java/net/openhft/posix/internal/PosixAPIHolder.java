@@ -16,9 +16,9 @@ public class PosixAPIHolder {
                     ? new JNRPosixAPI()
                     : new WinJNRPosixAPI();
         } catch (Throwable t) {
-            LoggerFactory.getLogger(PosixAPIHolder.class).debug("Unable to load JNRPosixAPI", t);
-
+            LoggerFactory.getLogger(PosixAPIHolder.class).warn("Unable to load JNRPosixAPI", t);
 /*
+            this is commented out it has not been tested yet
             try {
                 posixAPI = new JNAPosixAPI();
             } catch (Throwable t2) {
