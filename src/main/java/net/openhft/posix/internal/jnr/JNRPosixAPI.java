@@ -199,7 +199,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int fallocate(int fd, int mode, long offset, long length) {
-        return jnr.fallocate(fd, mode, offset, length);
+        return UnsafeMemory.IS32BIT ? jnr.fallocate(fd, mode, offset, length) : jnr.fallocate64(fd, mode, offset, length);
     }
 
     @Override
