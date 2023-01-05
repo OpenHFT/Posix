@@ -16,6 +16,7 @@ public interface JNRPosixInterface {
     int ftruncate(int fd, long offset);
 
     int fallocate(int fd, int mode, long offset, long length);
+    int fallocate64(int fd, int mode, long offset, long length);
 
     int close(int fd);
 
