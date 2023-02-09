@@ -300,6 +300,9 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public void signal(int signal, SignalFunction func) {
+        // TODO: consider behaving like jnr.posix.BaseNativePOSIX#signal in https://github.com/jnr/jnr-posix
+        // or our own Signal impl. in Core where we remember previous calls to this function
+        // and make this function add (rather than replace) a signal callback
         final long rv = jnr.signal(signal, sig -> func.invoke(sig));
         if (rv == -1)
             throw new PosixRuntimeException("Could not install signal " + signal);
