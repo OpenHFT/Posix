@@ -148,4 +148,9 @@ public final class WinJNRPosixAPI implements PosixAPI {
     public String strerror(int errno) {
         return jnr.strerror(errno);
     }
+
+    @Override
+    public void signal(int signal, SignalFunction func) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
 }

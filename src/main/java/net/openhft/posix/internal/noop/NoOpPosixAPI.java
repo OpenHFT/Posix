@@ -133,4 +133,8 @@ public class NoOpPosixAPI implements PosixAPI {
     public String strerror(int errno) {
         return null;
     }
+
+    @Override
+    public void signal(int signal, SignalFunction func) {
+    }
 }

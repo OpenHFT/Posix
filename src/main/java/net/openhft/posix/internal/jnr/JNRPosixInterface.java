@@ -1,6 +1,8 @@
 package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Pointer;
+import jnr.ffi.annotations.Delegate;
+import jnr.ffi.types.intptr_t;
 
 public interface JNRPosixInterface {
     int open(CharSequence path, int flags, int perm);
@@ -58,4 +60,11 @@ public interface JNRPosixInterface {
     int syscall(int number);
 
     int syscall(int number, long arg1, long arg2, int arg3);
+
+    interface LibCSignalHandler {
+        @Delegate
+        void signal(int sig);
+    }
+    @intptr_t
+    long signal(int sig, LibCSignalHandler handler);
 }

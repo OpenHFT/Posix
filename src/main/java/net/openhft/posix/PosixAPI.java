@@ -1,5 +1,6 @@
 package net.openhft.posix;
 
+import com.sun.jna.Callback;
 import net.openhft.posix.internal.PosixAPIHolder;
 import net.openhft.posix.internal.UnsafeMemory;
 
@@ -220,4 +221,9 @@ public interface PosixAPI {
     default String lastErrorStr() {
         return strerror(lastError());
     }
+
+    interface SignalFunction extends Callback {
+        void invoke(int signal);
+    }
+    void signal(int signal, SignalFunction func);
 }
