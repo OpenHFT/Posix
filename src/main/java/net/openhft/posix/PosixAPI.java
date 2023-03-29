@@ -15,7 +15,12 @@ public interface PosixAPI {
      * @return The fastest available PosixAPI implementation.
      */
     static PosixAPI posix() {
+        PosixAPIHolder.loadPosixApi();
         return PosixAPIHolder.POSIX_API;
+    }
+
+    static void useNoOpPosixApi() {
+        PosixAPIHolder.useNoOpPosixApi();
     }
 
     int close(int fd);
