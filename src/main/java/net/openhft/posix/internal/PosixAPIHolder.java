@@ -8,10 +8,12 @@ import net.openhft.posix.internal.noop.NoOpPosixAPI;
 import org.slf4j.LoggerFactory;
 
 public class PosixAPIHolder {
-    public static final PosixAPI POSIX_API;
+    public static PosixAPI POSIX_API;
 
-    static {
-        PosixAPI posixAPI = null;
+    public static void loadPosixApi() {
+        if (POSIX_API != null)
+            return;
+        PosixAPI posixAPI;
         try {
             posixAPI = Platform.getNativePlatform().isUnix()
                     ? new JNRPosixAPI()
@@ -31,4 +33,10 @@ public class PosixAPIHolder {
         }
         POSIX_API = posixAPI;
     }
+
+    public static void useNoOpPosixApi() {
+        POSIX_API = new NoOpPosixAPI();
+    }
+
+
 }
