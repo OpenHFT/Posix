@@ -133,6 +133,6 @@
         <connection>scm:git:git@github.com:OpenHFT/posix.git</connection>
         <developerConnection>scm:git:git@github.com:OpenHFT/posix.git</developerConnection>
         <url>scm:git:git@github.com:OpenHFT/posix.git</url>
-	<tag>ea</tag>
+	<tag>release/2.24</tag>
     </scm>
 </project>
