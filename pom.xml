@@ -5,7 +5,7 @@
     <parent>
         <groupId>net.openhft</groupId>
         <artifactId>java-parent-pom</artifactId>
-        <version>1.25.4</version>
+        <version>1.26.0-SNAPSHOT</version>
         <relativePath />
     </parent>
 
@@ -20,18 +20,12 @@
             <dependency>
                 <groupId>net.openhft</groupId>
                 <artifactId>third-party-bom</artifactId>
-                <version>3.25.2</version>
+                <version>3.26.0-SNAPSHOT</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -91,24 +85,10 @@
         <profile>
             <id>java11</id>
             <activation>
-                <jdk>[11,</jdk>
+                <jdk>[9,)</jdk>
             </activation>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <configuration>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/resources/META-INF/services</directory>
-                                    <excludes>
-                                        <exclude>*</exclude>
-                                    </excludes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
@@ -119,10 +99,7 @@
                                 <arg>--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED</arg>
                                 <arg>--add-exports=java.base/sun.nio.ch=ALL-UNNAMED</arg>
                             </compilerArgs>
-                            <excludes>
-                                <exclude>**/jdk8/**</exclude>
-                                <exclude>**/META-INF/services/**</exclude>
-                            </excludes>
+                            <failOnWarning>false</failOnWarning>
                         </configuration>
                     </plugin>
                 </plugins>
