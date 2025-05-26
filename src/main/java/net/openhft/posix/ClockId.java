@@ -1,60 +1,60 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different clock IDs used in clock operations.
- * It defines the various clocks that can be used for timing and synchronization purposes.
+ * Identifiers for {@code clock_gettime(2)}.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man2/clock_gettime.2.html">clock_gettime(2)</a>
+ * @since 2.27
  */
 public enum ClockId {
-    // The system-wide real-time clock
+    /** System-wide real-time clock. */
     CLOCK_REALTIME(0),
 
-    // The monotonic clock, which cannot be set and represents monotonic time since some unspecified starting point
+    /** Monotonic clock. */
     CLOCK_MONOTONIC(1),
 
-    // The clock measuring the CPU time consumed by the process
+    /** CPU time consumed by the process. */
     CLOCK_PROCESS_CPUTIME_ID(2),
 
-    // The clock measuring the CPU time consumed by the thread
+    /** CPU time consumed by the thread. */
     CLOCK_THREAD_CPUTIME_ID(3),
 
-    // The raw monotonic clock, without NTP adjustments
+    /** Monotonic clock without NTP adjustments. */
     CLOCK_MONOTONIC_RAW(4),
 
-    // The system-wide real-time clock, but faster and less accurate
+    /** Faster but coarse real-time clock. */
     CLOCK_REALTIME_COARSE(5),
 
-    // The coarse monotonic clock, but faster and less accurate
+    /** Faster but coarse monotonic clock. */
     CLOCK_MONOTONIC_COARSE(6),
 
-    // The monotonic clock that includes time spent in suspend
+    /** Monotonic clock including suspend time. */
     CLOCK_BOOTTIME(7),
 
-    // The system-wide real-time clock used to set alarms
+    /** Real-time clock used for alarms. */
     CLOCK_REALTIME_ALARM(8),
 
-    // The boot-time clock used to set alarms
+    /** Boot-time clock used for alarms. */
     CLOCK_BOOTTIME_ALARM(9),
 
-    // The SGI cycle counter
+    /** SGI cycle counter. */
     CLOCK_SGI_CYCLE(10);
 
-    // The integer value representing the clock ID
+    /** Native constant value. */
     private final int value;
 
     /**
-     * Constructor for ClockId.
-     *
-     * @param value The integer value representing the clock ID
+     * @param value native constant value
      */
     ClockId(int value) {
         this.value = value;
     }
 
     /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this ClockId object.
+     * Constant to pass to {@code clock_gettime}.
      *
-     * @return The current integer value of this ClockId object
+     * @return integer value
+     * @since 2.27
      */
     public int value() {
         return value;
