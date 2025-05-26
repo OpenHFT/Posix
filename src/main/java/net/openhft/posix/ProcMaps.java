@@ -11,11 +11,12 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Reader for {@code /proc/[pid]/maps}.
+ * Parses {@code /proc/[pid]/maps} on Linux only.
  *
- * Utility to parse {@code /proc/[pid]/maps} on Linux.
- * Instantiation fails with an {@link IOException} when run on an operating system
- * that lacks this file.
+ * Instantiation fails with an {@link IOException} if the proc file system is
+ * missing. The mapping list is immutable and reflects the state at construction
+ * time.
+ *
  * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
 public final class ProcMaps {
@@ -57,7 +58,9 @@ public final class ProcMaps {
         return new ProcMaps(pid);
     }
 
-    /** Immutable list of mappings. */
+    /**
+     * Immutable list of mappings captured at construction.
+     */
     public List<Mapping> list() {
         return unmodifiableList(mappingList);
     }
