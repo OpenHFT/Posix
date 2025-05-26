@@ -3,8 +3,9 @@ package net.openhft.posix.internal.jnr;
 import jnr.ffi.Pointer;
 
 /**
- * This interface defines the native methods for POSIX-like operations using JNR (Java Native Runtime).
- * It provides methods for file and memory operations, process scheduling, and system information retrieval.
+ * Native POSIX methods via JNR.
+ *
+ * @since 2.27
  */
 public interface JNRPosixInterface {
     int open(CharSequence path, int flags, int perm);

@@ -4,8 +4,9 @@ import net.openhft.posix.PosixAPI;
 import net.openhft.posix.PosixRuntimeException;
 
 /**
- * No-Op Posix implementation. Each method either does nothing and returns 0 (indicating no error)
- * or throws a {@link PosixRuntimeException} indicating that the POSIX implementation is missing.
+ * PosixAPI stub that does nothing or throws.
+ *
+ * @since 2.27
  */
 public class NoOpPosixAPI implements PosixAPI {
     // The reason why this No-Op implementation is used

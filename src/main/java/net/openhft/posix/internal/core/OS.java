@@ -3,7 +3,9 @@ package net.openhft.posix.internal.core;
 import static net.openhft.posix.internal.core.Jvm.OS_ARCH;
 
 /**
- * Utility class to access information about the operating system.
+ * Utilities for querying the host OS.
+ *
+ * @since 2.27
  */
 public final class OS {
 

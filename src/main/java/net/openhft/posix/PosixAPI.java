@@ -10,8 +10,9 @@ import java.io.InputStreamReader;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
- * This interface provides a set of methods for interacting with POSIX APIs.
- * It includes methods for file operations, memory management, and process scheduling.
+ * POSIX system access interface.
+ *
+ * @since 2.27
  */
 public interface PosixAPI {
 

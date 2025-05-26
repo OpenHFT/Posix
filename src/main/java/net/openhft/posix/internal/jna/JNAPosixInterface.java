@@ -3,8 +3,9 @@ package net.openhft.posix.internal.jna;
 import com.sun.jna.Pointer;
 
 /**
- * This class defines the native methods for POSIX-like operations using JNA (Java Native Access).
- * It provides methods for memory mapping operations.
+ * Native methods for POSIX operations via JNA.
+ *
+ * @since 2.27
  */
 public class JNAPosixInterface {
 

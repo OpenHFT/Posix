@@ -7,8 +7,9 @@ import net.openhft.posix.internal.jnr.WinJNRPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
 /**
- * This class holds the instance of the {@link PosixAPI} to be used.
- * It loads the appropriate PosixAPI implementation based on the native platform.
+ * Loads the best {@link PosixAPI} for the host.
+ *
+ * @since 2.27
  */
 public class PosixAPIHolder {
     // The PosixAPI instance to be used

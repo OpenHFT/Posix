@@ -1,8 +1,9 @@
 package net.openhft.posix;
 
 /**
- * This class represents a runtime exception specific to POSIX operations.
- * It extends the standard {@link RuntimeException} to provide more specific error handling for POSIX-related errors.
+ * Runtime exception for POSIX operations.
+ *
+ * @since 2.27
  */
 public class PosixRuntimeException extends RuntimeException {
     // Serialization version UID for ensuring compatibility during deserialization
