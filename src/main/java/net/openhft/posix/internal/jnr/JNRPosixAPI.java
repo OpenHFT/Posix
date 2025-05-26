@@ -113,9 +113,9 @@ public final class JNRPosixAPI implements PosixAPI {
         final int lastError = RUNTIME.getLastError();
         for (Errno errno : Errno.values()) {
             if (errno.intValue() == lastError)
-                throw new PosixRuntimeException(msg + "error " + errno);
+                throw new PosixRuntimeException(msg + "error " + errno, lastError);
         }
-        throw new PosixRuntimeException(msg + "unknown error " + lastError);
+        throw new PosixRuntimeException(msg + "unknown error " + lastError, lastError);
     }
 
     @Override
@@ -127,7 +127,7 @@ public final class JNRPosixAPI implements PosixAPI {
             final int lastError = RUNTIME.getLastError();
             for (Errno errno : Errno.values()) {
                 if (errno.intValue() == lastError)
-                    throw new PosixRuntimeException(errno.toString());
+                    throw new PosixRuntimeException(errno.toString(), lastError);
             }
         }
         return mmap;
