@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Advice flags for {@code madvise(2)}.
+ * Advice flags for the {@code madvise(2)} system call.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man2/madvise.2.html">madvise(2)</a>
  */
 public enum MAdviseFlag {
@@ -69,9 +70,9 @@ public enum MAdviseFlag {
     }
 
     /**
-     * Constant to pass to {@code madvise}.
+     * Returns the native integer to pass to {@code madvise}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;

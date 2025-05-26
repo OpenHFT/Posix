@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Operations for {@code lockf(3)}.
+ * Operations for the {@code lockf(3)} library call.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man3/lockf.3.html">lockf(3)</a>
  */
 public enum LockfFlag {
@@ -30,9 +31,9 @@ public enum LockfFlag {
     }
 
     /**
-     * Constant to pass to {@code lockf}.
+     * Returns the native integer to pass to {@code lockf}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;

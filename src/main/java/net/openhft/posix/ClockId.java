@@ -1,11 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Identifiers for {@code clock_gettime(2)}.
+ * Identifiers for the {@code clock_gettime(2)} system call.
  *
- * Clock IDs for operations like {@code clock_gettime}.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
  *
- * <p>The integer values are binary-compatible with the glibc headers.
  * @see <a href="https://man7.org/linux/man-pages/man2/clock_gettime.2.html">clock_gettime(2)</a>
  */
 public enum ClockId {
@@ -54,9 +53,9 @@ public enum ClockId {
     }
 
     /**
-     * Constant to pass to {@code clock_gettime}.
+     * Returns the native integer to pass to {@code clock_gettime}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;

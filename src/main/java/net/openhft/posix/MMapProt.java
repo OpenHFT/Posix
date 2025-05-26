@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Protection flags for {@code mmap(2)}.
+ * Protection flags for the {@code mmap(2)} system call.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapProt {
@@ -36,9 +37,9 @@ public enum MMapProt {
     }
 
     /**
-     * Constant to pass to {@code mmap}.
+     * Returns the native integer to pass to {@code mmap}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;
