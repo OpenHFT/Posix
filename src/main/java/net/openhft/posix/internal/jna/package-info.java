@@ -1,5 +1,5 @@
 /**
- * Offers the JNA based implementation of the Posix API.
+ * Supplies the JNA based provider of {@link net.openhft.posix.PosixAPI}.
  *
  * Audience: internal, Stability: volatile
  */
