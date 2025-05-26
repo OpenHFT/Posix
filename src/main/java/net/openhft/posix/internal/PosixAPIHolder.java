@@ -7,19 +7,20 @@ import net.openhft.posix.internal.jnr.WinJNRPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
 /**
- * Loads the best {@link PosixAPI} for the host.
- *
+ * Holds the selected {@link PosixAPI} provider for this JVM.
+ * <p>The fallback order is {@code JNRPosixAPI},
+ * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}.</p>
  */
 public class PosixAPIHolder {
-    // The PosixAPI instance to be used
+    /** Selected provider instance once initialised. */
     public static PosixAPI POSIX_API;
 
     /**
      * Loads the fastest compatible provider into {@link #POSIX_API}.
-     * Idempotent but not thread-safe until the first successful load.
-     * The provider fallback order is {@code JNRPosixAPI},
-     * {@code WinJNRPosixAPI}, {@code JNAPosixAPI},
-     * {@code NoOpPosixAPI} (see POSIX-FN-002).
+     * Not thread-safe while {@link #POSIX_API} is {@code null}.
+     * Providers are tried in the order {@code JNRPosixAPI},
+     * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}
+     * (see POSIX-FN-002).
      */
     public static void loadPosixApi() {
         if (POSIX_API != null)
@@ -39,7 +40,7 @@ public class PosixAPIHolder {
     }
 
     /**
-     * Sets the PosixAPI to a no-op implementation explicitly.
+     * Switches {@link #POSIX_API} to the no-op provider.
      */
     public static void useNoOpPosixApi() {
         POSIX_API = new NoOpPosixAPI("Explicitly disabled");
