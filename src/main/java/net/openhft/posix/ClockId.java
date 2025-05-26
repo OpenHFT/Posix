@@ -1,41 +1,42 @@
 package net.openhft.posix;
 
 /**
- * Clock IDs used for timing.
+ * Clock IDs for operations like {@code clock_gettime}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum ClockId {
-    // The system-wide real-time clock
+    /** The system-wide real-time clock. */
     CLOCK_REALTIME(0),
 
-    // The monotonic clock, which cannot be set and represents monotonic time since some unspecified starting point
+    /** Monotonic clock that cannot be set. */
     CLOCK_MONOTONIC(1),
 
-    // The clock measuring the CPU time consumed by the process
+    /** CPU time consumed by the process. */
     CLOCK_PROCESS_CPUTIME_ID(2),
 
-    // The clock measuring the CPU time consumed by the thread
+    /** CPU time consumed by the thread. */
     CLOCK_THREAD_CPUTIME_ID(3),
 
-    // The raw monotonic clock, without NTP adjustments
+    /** Monotonic clock without NTP adjustments. */
     CLOCK_MONOTONIC_RAW(4),
 
-    // The system-wide real-time clock, but faster and less accurate
+    /** Real-time clock with coarse granularity. */
     CLOCK_REALTIME_COARSE(5),
 
-    // The coarse monotonic clock, but faster and less accurate
+    /** Monotonic clock with coarse granularity. */
     CLOCK_MONOTONIC_COARSE(6),
 
-    // The monotonic clock that includes time spent in suspend
+    /** Monotonic clock that includes suspend time. */
     CLOCK_BOOTTIME(7),
 
-    // The system-wide real-time clock used to set alarms
+    /** Real-time clock used to set alarms. */
     CLOCK_REALTIME_ALARM(8),
 
-    // The boot-time clock used to set alarms
+    /** Boot-time clock used to set alarms. */
     CLOCK_BOOTTIME_ALARM(9),
 
-    // The SGI cycle counter
+    /** SGI cycle counter. */
     CLOCK_SGI_CYCLE(10);
 
     // The integer value representing the clock ID

@@ -16,7 +16,14 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 public interface PosixAPI {
 
     /**
-     * @return The fastest available PosixAPI implementation.
+     * Returns the lazily initialised {@link PosixAPI} instance.
+     * The method is idempotent but not thread-safe until the first
+     * successful load. Providers are attempted in the order
+     * {@code JNRPosixAPI}, {@code WinJNRPosixAPI},
+     * {@code JNAPosixAPI}, {@code NoOpPosixAPI} as set out in
+     * POSIX-FN-002.
+     *
+     * @return the selected PosixAPI
      */
     static PosixAPI posix() {
         PosixAPIHolder.loadPosixApi();
@@ -121,7 +128,10 @@ public interface PosixAPI {
      * @param flags  The flags.
      * @param fd     The file descriptor.
      * @param offset The offset.
-     * @return The starting address of the mapped area.
+     * @return The starting address of the mapped area, or {@code -1} if the
+     *         mapping failed. A return value of {@code -1} represents
+     *         {@code MAP_FAILED} and callers must consult
+     *         {@link #lastError()} for the cause.
      */
     default long mmap(long addr, long length, MMapProt prot, MMapFlag flags, int fd, long offset) {
         return mmap(addr, length, prot.value(), flags.value(), fd, offset);
@@ -136,7 +146,10 @@ public interface PosixAPI {
      * @param flags  The flags.
      * @param fd     The file descriptor.
      * @param offset The offset.
-     * @return The starting address of the mapped area.
+     * @return The starting address of the mapped area, or {@code -1} if the
+     *         mapping failed. A return value of {@code -1} represents
+     *         {@code MAP_FAILED} and callers must consult
+     *         {@link #lastError()} for the cause.
      */
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 

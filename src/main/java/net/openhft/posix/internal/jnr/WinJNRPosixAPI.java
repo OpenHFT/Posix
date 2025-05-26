@@ -7,8 +7,20 @@ import net.openhft.posix.PosixAPI;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
- * PosixAPI implementation via JNR for Windows.
- *
+ * Implementation of {@link PosixAPI} using JNR for Windows.
+ * Provides POSIX-style file and memory calls.
+ * <p>
+ * Windows lacks direct equivalents for several POSIX functions, so the
+ * following methods always report success and perform no action:
+ * <ul>
+ * <li>{@link #madvise(long, long, int)}</li>
+ * <li>{@link #msync(long, long, int)}</li>
+ * <li>{@link #fallocate(int, int, long, long)}</li>
+ * <li>{@link #ftruncate(int, long)}</li>
+ * <li>{@link #mmap(long, long, int, int, int, long)}</li>
+ * <li>{@link #munmap(long, long)}</li>
+ * <li>{@link #gettimeofday(long)}</li>
+ * </ul>
  */
 public final class WinJNRPosixAPI implements PosixAPI {
 

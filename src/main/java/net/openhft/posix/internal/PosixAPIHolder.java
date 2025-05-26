@@ -15,9 +15,11 @@ public class PosixAPIHolder {
     public static PosixAPI POSIX_API;
 
     /**
-     * Loads the appropriate PosixAPI implementation based on the native platform.
-     * If the platform is Unix, it loads {@link JNRPosixAPI}, otherwise it loads {@link WinJNRPosixAPI}.
-     * If an error occurs during loading, it falls back to {@link NoOpPosixAPI}.
+     * Loads the fastest compatible provider into {@link #POSIX_API}.
+     * Idempotent but not thread-safe until the first successful load.
+     * The provider fallback order is {@code JNRPosixAPI},
+     * {@code WinJNRPosixAPI}, {@code JNAPosixAPI},
+     * {@code NoOpPosixAPI} (see POSIX-FN-002).
      */
     public static void loadPosixApi() {
         if (POSIX_API != null)

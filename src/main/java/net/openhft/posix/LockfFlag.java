@@ -1,8 +1,9 @@
 package net.openhft.posix;
 
 /**
- * Flags for lockf operations.
+ * Flags for {@code lockf}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum LockfFlag {
     /**

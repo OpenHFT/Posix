@@ -11,8 +11,9 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Parses /proc maps to list memory mappings.
- *
+ * Utility to parse {@code /proc/[pid]/maps} on Linux.
+ * Instantiation fails with an {@link IOException} when run on an operating system
+ * that lacks this file.
  */
 public final class ProcMaps {
     // A list to hold the memory mappings
@@ -67,6 +68,7 @@ public final class ProcMaps {
      *
      * @param test The predicate to test memory mappings.
      * @return The first matching memory mapping.
+     * @throws java.util.NoSuchElementException if no mapping matches
      */
     public Mapping findFirst(Predicate<? super Mapping> test) {
         return mappingList.stream()
@@ -79,7 +81,7 @@ public final class ProcMaps {
      * Finds all memory mappings that match the given predicate.
      *
      * @param test The predicate to test memory mappings.
-     * @return A list of all matching memory mappings.
+     * @return A list of matching memory mappings, empty if none match
      */
     public List<Mapping> findAll(Predicate<? super Mapping> test) {
         return mappingList.stream()

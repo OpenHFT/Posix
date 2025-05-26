@@ -4,8 +4,27 @@ import net.openhft.posix.PosixAPI;
 import net.openhft.posix.PosixRuntimeException;
 
 /**
- * PosixAPI stub that does nothing or throws.
+ * Stand-in when no native POSIX API is available.
  *
+ * <p>Methods that succeed silently (returning {@code 0} or {@code -1} where
+ * applicable):
+ * <ul>
+ * <li>{@link #fallocate(int, int, long, long)}</li>
+ * <li>{@link #ftruncate(int, long)}</li>
+ * <li>{@link #madvise(long, long, int)}</li>
+ * <li>{@link #msync(long, long, int)}</li>
+ * <li>{@link #sched_setaffinity(int, int, long)}</li>
+ * <li>{@link #sched_getaffinity(int, int, long)}</li>
+ * <li>{@link #mlock(long, long)}</li>
+ * <li>{@link #mlock2(long, long, boolean)}</li>
+ * <li>{@link #mlockall(net.openhft.posix.MclFlag)}</li>
+ * <li>{@link #strerror(int)} (returns {@code null})</li>
+ * <li>{@link #lastError()}</li>
+ * </ul>
+ *
+ * <p>All other operations throw {@link PosixRuntimeException}.</p>
+ *
+ * <p>{@code lastError()} always returns {@code 0}.</p>
  */
 public class NoOpPosixAPI implements PosixAPI {
     // The reason why this No-Op implementation is used
@@ -111,6 +130,9 @@ public class NoOpPosixAPI implements PosixAPI {
         return -1;
     }
 
+    /**
+     * Always returns {@code 0} as no system calls are made.
+     */
     @Override
     public int lastError() {
         return 0;

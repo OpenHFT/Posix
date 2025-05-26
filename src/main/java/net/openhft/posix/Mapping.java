@@ -3,8 +3,14 @@ package net.openhft.posix;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * Represents an entry from /proc/[pid]/maps.
+ * Immutable value object for one line of {@code /proc/$pid/maps}.
  *
+ * Example line:
+ * {@code 00400000-0040b000 r-xp 00000000 08:02 367546 /bin/cat}
+ * <br>addr range | perms | offset | device | inode | path
+ *
+ * On a 32-bit VM the addresses are truncated.
+ * Instances are thread-safe and immutable.
  */
 public final class Mapping {
     // The start address of the memory mapping

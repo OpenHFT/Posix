@@ -1,26 +1,27 @@
 package net.openhft.posix;
 
 /**
- * Protection flags for mmap.
+ * Protection flags for {@code mmap}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum MMapProt {
-    // Memory protection to allow read access
+    /** Allow read access. */
     PROT_READ(1),
 
-    // Memory protection to allow write access
+    /** Allow write access. */
     PROT_WRITE(2),
 
-    // Memory protection to allow both read and write access
+    /** Allow both read and write access. */
     PROT_READ_WRITE(3),
 
-    // Memory protection to allow execute access
+    /** Allow execute access. */
     PROT_EXEC(4),
 
-    // Memory protection to allow both execute and read access
+    /** Allow execute and read access. */
     PROT_EXEC_READ(5),
 
-    // Memory protection to allow no access
+    /** No access allowed. */
     PROT_NONE(8);
 
     // The integer value representing the memory protection level

@@ -1,8 +1,9 @@
 package net.openhft.posix;
 
 /**
- * Flags for msync.
+ * Flags for {@code msync}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum MSyncFlag {
     /**

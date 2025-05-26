@@ -71,6 +71,7 @@ for off-heap buffers usable by JNI/direct I-O.
 | No-Op provider contract
 | `NoOpPosixAPI` compiles everywhere, returning `0` for safe no-ops,
 `-1` or throwing for operations where silent failure risks data loss.
+Its `lastError()` method always returns `0`.
 
 | POSIX-FN-011
 | Pure introspection helpers
