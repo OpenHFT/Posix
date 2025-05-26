@@ -11,18 +11,19 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
 /**
- * This class provides methods to read and parse the memory mappings from the /proc filesystem on Linux.
- * It allows users to retrieve memory mappings for the current process or a specified process ID (PID).
+ * Reader for {@code /proc/[pid]/maps}.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
 public final class ProcMaps {
     // A list to hold the memory mappings
     private final List<Mapping> mappingList = new ArrayList<>();
 
     /**
-     * Private constructor to initialize ProcMaps with mappings from the specified process.
+     * Reads mappings for the given process.
      *
-     * @param proc The process identifier (could be "self" for the current process).
-     * @throws IOException If an I/O error occurs reading from the /proc filesystem.
+     * @param proc process id or "self"
+     * @throws IOException on read failure
      */
     private ProcMaps(Object proc) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/" + proc + "/maps"))) {
@@ -33,40 +34,36 @@ public final class ProcMaps {
     }
 
     /**
-     * Factory method to create a ProcMaps instance for the current process.
+     * Create a {@link ProcMaps} for the current process.
      *
-     * @return A ProcMaps instance for the current process.
-     * @throws IOException If an I/O error occurs reading from the /proc filesystem.
+     * @return mappings for this process
+     * @throws IOException on read failure
      */
     public static ProcMaps forSelf() throws IOException {
         return new ProcMaps("self");
     }
 
     /**
-     * Factory method to create a ProcMaps instance for a specified process ID (PID).
+     * Create a {@link ProcMaps} for the given PID.
      *
-     * @param pid The process ID to read memory mappings for.
-     * @return A ProcMaps instance for the specified PID.
-     * @throws IOException If an I/O error occurs reading from the /proc filesystem.
+     * @param pid target process id
+     * @return mappings for the process
+     * @throws IOException on read failure
      */
     public static ProcMaps forPID(int pid) throws IOException {
         return new ProcMaps(pid);
     }
 
-    /**
-     * Returns an unmodifiable list of memory mappings.
-     *
-     * @return An unmodifiable list of memory mappings.
-     */
+    /** Immutable list of mappings. */
     public List<Mapping> list() {
         return unmodifiableList(mappingList);
     }
 
     /**
-     * Finds the first memory mapping that matches the given predicate.
+     * First mapping matching the predicate.
      *
-     * @param test The predicate to test memory mappings.
-     * @return The first matching memory mapping.
+     * @param test filter condition
+     * @return the first match
      */
     public Mapping findFirst(Predicate<? super Mapping> test) {
         return mappingList.stream()
@@ -76,10 +73,10 @@ public final class ProcMaps {
     }
 
     /**
-     * Finds all memory mappings that match the given predicate.
+     * All mappings matching the predicate.
      *
-     * @param test The predicate to test memory mappings.
-     * @return A list of all matching memory mappings.
+     * @param test filter condition
+     * @return list of matches
      */
     public List<Mapping> findAll(Predicate<? super Mapping> test) {
         return mappingList.stream()

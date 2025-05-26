@@ -3,8 +3,9 @@ package net.openhft.posix;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * This class represents a memory mapping in the /proc/[pid]/maps file.
- * It parses and stores the details of a single memory mapping.
+ * Representation of one line from {@code /proc/[pid]/maps}.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
 public final class Mapping {
     // The start address of the memory mapping
@@ -32,9 +33,9 @@ public final class Mapping {
     private final String toString;
 
     /**
-     * Constructs a Mapping object by parsing a line from the /proc/[pid]/maps file.
+     * Parses a mapping line from {@code /proc/[pid]/maps}.
      *
-     * @param line A line from the /proc/[pid]/maps file.
+     * @param line textual line from the maps file
      */
     public Mapping(String line) {
         String[] parts = line.split(" +");
@@ -50,74 +51,42 @@ public final class Mapping {
         toString = line;
     }
 
-    /**
-     * Returns the start address of the memory mapping.
-     *
-     * @return The start address of the memory mapping.
-     */
+    /** Start address of the mapping. */
     public long addr() {
         return addr;
     }
 
-    /**
-     * Returns the length of the memory mapping.
-     *
-     * @return The length of the memory mapping.
-     */
+    /** Length of the mapping. */
     public long length() {
         return length;
     }
 
-    /**
-     * Returns the offset into the file/VM object to which the memory mapping refers.
-     *
-     * @return The offset into the file/VM object.
-     */
+    /** Offset into the file or VM object. */
     public long offset() {
         return offset;
     }
 
-    /**
-     * Returns the inode on the device.
-     *
-     * @return The inode on the device.
-     */
+    /** Inode number. */
     public long inode() {
         return inode;
     }
 
-    /**
-     * Returns the permissions of the memory mapping.
-     *
-     * @return The permissions of the memory mapping.
-     */
+    /** Permission string such as {@code r-xp}. */
     public String perms() {
         return perms;
     }
 
-    /**
-     * Returns the device (major:minor) of the memory mapping.
-     *
-     * @return The device of the memory mapping.
-     */
+    /** Device in {@code major:minor} form. */
     public String device() {
         return device;
     }
 
-    /**
-     * Returns the file path associated with the memory mapping.
-     *
-     * @return The file path associated with the memory mapping.
-     */
+    /** File path of the mapping if any. */
     public String path() {
         return path;
     }
 
-    /**
-     * Returns the original line from the /proc/[pid]/maps file.
-     *
-     * @return The original line from the /proc/[pid]/maps file.
-     */
+    /** Original line from the maps file. */
     @Override
     public String toString() {
         return toString;

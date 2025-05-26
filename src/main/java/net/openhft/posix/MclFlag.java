@@ -1,39 +1,37 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for memory locking (mlockall) operations.
- * It defines the flags used to control how pages are locked in memory.
+ * Flags for {@code mlockall(2)}.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man2/mlockall.2.html">mlockall(2)</a>
  */
 public enum MclFlag {
-    // Lock all current pages in memory
+    /** Lock current pages in memory. */
     MclCurrent(1),
 
-    // Lock all future pages in memory
+    /** Lock future pages in memory. */
     MclFuture(2),
 
-    // Lock all current pages in memory on fault
+    /** Lock current pages on fault. */
     MclCurrentOnFault(1 + 4),
 
-    // Lock all future pages in memory on fault
+    /** Lock future pages on fault. */
     MclFutureOnFault(2 + 4);
 
-    // The integer code representing the mlockall flag
+    /** Native constant value. */
     private int code;
 
     /**
-     * Constructor for MclFlag.
-     *
-     * @param code The integer code representing the mlockall flag
+     * @param code native constant value
      */
     MclFlag(int code) {
         this.code = code;
     }
 
     /**
-     * This method is a getter for the code instance variable.
-     * It returns the current integer code of this MclFlag object.
+     * Constant to pass to {@code mlockall}.
      *
-     * @return The current integer code of this MclFlag object
+     * @return integer value
      */
     public int code() {
         return code;
