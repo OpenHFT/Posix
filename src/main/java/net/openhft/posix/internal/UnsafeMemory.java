@@ -5,6 +5,12 @@ import sun.misc.Unsafe;
 import java.lang.reflect.Field;
 
 /**
+ * Provides access to the {@link Unsafe} instance for low-level memory calls.
+ * <p>
+ * This utility is referenced by generated JNI layers and offers
+ * architecture hints such as {@link #IS64BIT}.  It exists solely as a
+ * holder for the native handle and should never be instantiated or
+ * extended directly.
  * Provides access to the {@link Unsafe} instance and related memory properties.
  * When running on JDK 17 or later start the JVM with
  * {@code --add-opens java.base/jdk.internal.misc=ALL-UNNAMED} to permit reflection.
