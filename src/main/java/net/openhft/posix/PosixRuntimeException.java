@@ -1,13 +1,14 @@
 package net.openhft.posix;
 
 /**
- * Runtime exception for POSIX operations.
- *
+ * Runtime exception for POSIX operations. The instance wraps the errno
+ * produced by the underlying native call.
  */
 public class PosixRuntimeException extends RuntimeException {
-    // Serialization version UID for ensuring compatibility during deserialization
+    /** Used to maintain serialization compatibility. */
     private static final long serialVersionUID = 0L;
 
+    /** POSIX errno captured from the failing call. */
     private final int errno;
 
     /**
