@@ -3,8 +3,8 @@ package net.openhft.posix;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * This class represents a memory mapping in the /proc/[pid]/maps file.
- * It parses and stores the details of a single memory mapping.
+ * Represents an entry from /proc/[pid]/maps.
+ *
  */
 public final class Mapping {
     // The start address of the memory mapping
@@ -50,74 +50,34 @@ public final class Mapping {
         toString = line;
     }
 
-    /**
-     * Returns the start address of the memory mapping.
-     *
-     * @return The start address of the memory mapping.
-     */
     public long addr() {
         return addr;
     }
 
-    /**
-     * Returns the length of the memory mapping.
-     *
-     * @return The length of the memory mapping.
-     */
     public long length() {
         return length;
     }
 
-    /**
-     * Returns the offset into the file/VM object to which the memory mapping refers.
-     *
-     * @return The offset into the file/VM object.
-     */
     public long offset() {
         return offset;
     }
 
-    /**
-     * Returns the inode on the device.
-     *
-     * @return The inode on the device.
-     */
     public long inode() {
         return inode;
     }
 
-    /**
-     * Returns the permissions of the memory mapping.
-     *
-     * @return The permissions of the memory mapping.
-     */
     public String perms() {
         return perms;
     }
 
-    /**
-     * Returns the device (major:minor) of the memory mapping.
-     *
-     * @return The device of the memory mapping.
-     */
     public String device() {
         return device;
     }
 
-    /**
-     * Returns the file path associated with the memory mapping.
-     *
-     * @return The file path associated with the memory mapping.
-     */
     public String path() {
         return path;
     }
 
-    /**
-     * Returns the original line from the /proc/[pid]/maps file.
-     *
-     * @return The original line from the /proc/[pid]/maps file.
-     */
     @Override
     public String toString() {
         return toString;

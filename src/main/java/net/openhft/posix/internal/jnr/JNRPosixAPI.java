@@ -18,8 +18,8 @@ import java.util.function.IntSupplier;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
- * Implementation of {@link PosixAPI} using JNR (Java Native Runtime).
- * Provides POSIX-like methods for file and memory operations, leveraging the JNR library.
+ * PosixAPI implementation using JNR.
+ *
  */
 public final class JNRPosixAPI implements PosixAPI {
 

@@ -1,8 +1,8 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for opening files (open).
- * It defines the flags used to control the behavior of file opening operations.
+ * Flags for opening files.
+ *
  */
 public enum OpenFlag {
     // Open for reading only
@@ -44,21 +44,10 @@ public enum OpenFlag {
     // The integer value representing the open flag
     final int value;
 
-    /**
-     * Constructor for OpenFlag.
-     *
-     * @param value The integer value representing the open flag
-     */
     OpenFlag(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this OpenFlag object.
-     *
-     * @return The current integer value of this OpenFlag object
-     */
     public int value() {
         return value;
     }

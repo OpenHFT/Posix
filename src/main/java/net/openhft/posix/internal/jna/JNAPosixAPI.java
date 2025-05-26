@@ -7,8 +7,8 @@ import com.sun.jna.Pointer;
 import net.openhft.posix.PosixAPI;
 
 /**
- * Abstract class implementing {@link PosixAPI} using JNA (Java Native Access).
- * It provides methods for memory mapping operations, leveraging the JNA library.
+ * Partial {@link PosixAPI} implementation using JNA.
+ *
  */
 public abstract class JNAPosixAPI implements PosixAPI {
     private static final Pointer NULL = Pointer.createConstant(0);

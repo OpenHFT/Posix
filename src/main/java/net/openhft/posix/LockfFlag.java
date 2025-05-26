@@ -1,8 +1,8 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for file locking (lockf) operations.
- * It defines the operations to be performed on file locks, such as locking, unlocking, and testing locks.
+ * Flags for lockf operations.
+ *
  */
 public enum LockfFlag {
     /**
@@ -34,21 +34,10 @@ public enum LockfFlag {
     // The integer value representing the lockf flag
     final int value;
 
-    /**
-     * Constructor for LockfFlag.
-     *
-     * @param value The integer value representing the lockf flag
-     */
     LockfFlag(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this LockfFlag object.
-     *
-     * @return The current integer value of this LockfFlag object
-     */
     public int value() {
         return value;
     }

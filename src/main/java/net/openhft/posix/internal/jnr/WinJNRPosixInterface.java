@@ -1,7 +1,8 @@
 package net.openhft.posix.internal.jnr;
 
 /**
- * This interface defines the native methods for POSIX-like operations on Windows using JNR (Java Native Runtime).
+ * Native POSIX methods for Windows via JNR.
+ *
  */
 public interface WinJNRPosixInterface {
     // SetFilePointer

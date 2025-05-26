@@ -1,8 +1,8 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for memory advice (madvise) operations.
- * It defines the advice to be given to the kernel about the intended usage pattern of memory.
+ * Advice flags for madvise.
+ *
  */
 public enum MAdviseFlag {
     // No further special treatment
@@ -59,21 +59,10 @@ public enum MAdviseFlag {
     // The integer value representing the madvise flag
     final int value;
 
-    /**
-     * Constructor for MAdviseFlag.
-     *
-     * @param value The integer value representing the madvise flag
-     */
     MAdviseFlag(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this MAdviseFlag object.
-     *
-     * @return The current integer value of this MAdviseFlag object
-     */
     public int value() {
         return value;
     }

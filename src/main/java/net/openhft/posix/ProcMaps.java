@@ -11,8 +11,8 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
 /**
- * This class provides methods to read and parse the memory mappings from the /proc filesystem on Linux.
- * It allows users to retrieve memory mappings for the current process or a specified process ID (PID).
+ * Parses /proc maps to list memory mappings.
+ *
  */
 public final class ProcMaps {
     // A list to hold the memory mappings

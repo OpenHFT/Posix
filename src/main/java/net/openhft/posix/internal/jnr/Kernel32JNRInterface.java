@@ -1,7 +1,8 @@
 package net.openhft.posix.internal.jnr;
 
 /**
- * This interface defines the native methods for interacting with the Kernel32 library on Windows using JNR (Java Native Runtime).
+ * Native Kernel32 methods via JNR.
+ *
  */
 public interface Kernel32JNRInterface {
 

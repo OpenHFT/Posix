@@ -5,8 +5,8 @@ import sun.misc.Unsafe;
 import java.lang.reflect.Field;
 
 /**
- * This enum provides access to the {@link Unsafe} class and some system memory properties.
- * It allows low-level, unsafe operations on memory, which are normally not accessible through standard Java APIs.
+ * Access to {@link Unsafe} and memory traits.
+ *
  */
 public enum UnsafeMemory {
     // Empty enum to prevent instantiation

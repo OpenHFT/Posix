@@ -1,8 +1,8 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for seeking within a file (whence).
- * It defines the options used to set the file offset for read/write operations.
+ * Whence flags for file seeking.
+ *
  */
 public enum WhenceFlag {
     /**
@@ -36,21 +36,10 @@ public enum WhenceFlag {
     // The integer value representing the whence flag
     private final int value;
 
-    /**
-     * Constructor for WhenceFlag.
-     *
-     * @param value The integer value representing the whence flag
-     */
     WhenceFlag(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this WhenceFlag object.
-     *
-     * @return The current integer value of this WhenceFlag object
-     */
     public int value() {
         return value;
     }

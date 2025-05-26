@@ -3,7 +3,8 @@ package net.openhft.posix.internal.core;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * Utility class to access information about the JVM.
+ * Utilities for querying JVM details.
+ *
  */
 public final class Jvm {
 
