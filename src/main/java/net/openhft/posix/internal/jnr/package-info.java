@@ -1,5 +1,5 @@
 /**
- * Offers the JNR based implementation of the Posix API.
+ * Supplies the JNR based provider of {@link net.openhft.posix.PosixAPI}.
  *
  * Audience: internal, Stability: volatile
  */
