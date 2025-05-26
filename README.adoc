@@ -1,12 +1,126 @@
 = Posix
 Peter Lawrey, 31/08/2021
+:toc:
+:icons: font
+:encoding: ISO-8859-1
+:lang: en-GB
+:source-highlighter: rouge
 
-Audience: Internal. Stability: Volatile. See RISK tag in decision log.
+[abstract]
+The _OpenHFT Posix_ module is a zero-GC, low-latency Java façade over a **portable subset of POSIX/Linux system calls**, with provider fall-back to JNR, JNA or raw/reflective variants.
+Chronicle components rely on it for deterministic file-IO, memory-mapping and CPU-affinity operations that the JDK does not expose.
 
-Posix library used by OpenHFT.
+Audience: Internal, Stability: Stable
 
-This supports calls to do with memory mapping which other Posix libraries don't seem to cover.
+== Quick start
 
-== Switching implementations.
+.Gradle / Maven
+[source,xml,subs=+quotes]
+----
+<dependency>
+  <groupId>net.openhft</groupId>
+  <artifactId>posix</artifactId>
+  <version>{project-version}</version>
+</dependency>
+----
 
-This library uses JNR, JNA or reflection/raw Java versions as is available.
+Simple usage:
+
+[source,java]
+----
+PosixAPI posix = PosixAPI.posix();
+long addr      = posix.mmap(0, 4096,
+                           MMapProt.PROT_READ_WRITE.value(),
+                           MMapFlag.PRIVATE.value(),
+                           fd, 0);
+...
+posix.munmap(addr, 4096);
+----
+
+== Design goals
+
+* _Determinism_ – no heap allocation on the hot path.
+* _Portability_ – Linux/macOS/Windows support via provider auto-selection.
+* _Fallback safety_ – `NoOpPosixAPI` guarantees compilation in CI sandboxes.
+* _Traceability_ – every public constant links to POSIX-FN requirements.
+
+== Provider selection & fall-back
+
+[cols="1,1,3"]
+|===
+| Provider | Native layer | Typical when…
+
+| `JNRPosixAPI`      | JNR-FFI      | **Linux** & x86_64/ARM, fastest syscalls
+| `WinJNRPosixAPI`   | JNR-FFI      | **Windows** equivalents (subset)
+| `JNAPosixAPI`      | JNA          | exotic/legacy platforms
+| `RawPosixAPI`      | Reflection   | JVM ≥ 21 with `--add-opens`
+| `NoOpPosixAPI`     | —            | CI sandboxes / Graal native-image
+|===
+
+`-Dchronicle.posix.provider=` *provider-name* overrides the auto-choice.
+
+== Supported system calls
+
+[cols="1,3,1,2"]
+|===
+| Area | Functions | Return model | Notes
+
+| File-IO
+| `open`, `close`, `ftruncate`, `lseek`, `read`, `write`, `lockf`
+| 0 / FD / bytes | `errno` surfaced via `PosixRuntimeException`
+
+| Memory
+| `mmap`, `munmap`, `madvise`, `msync`, `mlock*`, `fallocate`
+| addr / 0        | `MAP_FAILED` → -1 sentinel
+
+| CPU-affinity
+| `sched_*affinity*`, helpers `sched_setaffinity_as` …
+| 0               | portable bit-mask helpers
+
+| Timing
+| `clock_gettime`, `gettimeofday`
+| ns / µs         | falls back to `System.nanoTime` on JDK < 17
+|===
+
+== Build & test
+
+[source,bash]
+----
+# run unit tests + Checkstyle + spot-bugs
+mvn -q verify
+----
+
+Environment variables:
+
+* `POSIX_TEST_ALLOW_NATIVE` – set to *false* in CI to force `NoOpPosixAPI`.
+* `POSIX_SYSLOG_LEVEL` – adjust logging noise during native provider load.
+
+== Troubleshooting
+
+[%collapsible]
+.Why do I get `PosixRuntimeException: EPERM` on `mlockall`?
+====
+The process exceeded its `RLIMIT_MEMLOCK`.
+On Linux:
+
+[source,bash]
+ulimit -l unlimited     # or edit /etc/security/limits.conf
+====
+
+[%collapsible]
+.Native provider fails to load on JDK 17+
+====
+Add JVM arg:
+
+[source]
+--add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+====
+
+[%collapsible]
+
+== Further reading
+
+* link:src/main/adoc/project-requirements.adoc[Functional requirements]
+* link:src/main/adoc/decision-log.adoc[Architecture decision log]
+* link:https://man7.org/linux/man-pages/[Linux man-pages]
+
