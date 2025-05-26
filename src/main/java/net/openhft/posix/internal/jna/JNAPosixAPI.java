@@ -7,8 +7,13 @@ import com.sun.jna.Pointer;
 import net.openhft.posix.PosixAPI;
 
 /**
- * Abstract class implementing {@link PosixAPI} using JNA (Java Native Access).
- * It provides methods for memory mapping operations, leveraging the JNA library.
+ * Abstract {@link PosixAPI} based on JNA (Java Native Access).
+ *
+ * <p>Instantiating this class loads the platform C library via
+ * {@code NativeLibrary.getInstance}.  The search honours the
+ * {@code jna.library.path} system property.  The library is registered with
+ * {@code Native.register} and therefore cannot be unloaded for the lifetime of
+ * the JVM.</p>
  */
 public abstract class JNAPosixAPI implements PosixAPI {
     private static final Pointer NULL = Pointer.createConstant(0);
@@ -17,7 +22,8 @@ public abstract class JNAPosixAPI implements PosixAPI {
     private final JNAPosixInterface jna = new JNAPosixInterface();
 
     /**
-     * Constructs a JNAPosixAPI instance and initializes the JNA interface.
+     * Constructs a JNAPosixAPI and registers the POSIX natives.  The
+     * registration is global; JNA does not support unloading once registered.
      */
     public JNAPosixAPI() {
         NativeLibrary clib = NativeLibrary.getInstance(Platform.C_LIBRARY_NAME);
