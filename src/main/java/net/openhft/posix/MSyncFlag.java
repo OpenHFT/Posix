@@ -1,8 +1,9 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for memory synchronization (msync) operations.
- * It defines the flags used to control the behavior of memory synchronization operations.
+ * Flags for {@code msync}.
+ *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum MSyncFlag {
     /**
