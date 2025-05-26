@@ -3,13 +3,16 @@ package net.openhft.posix;
 /**
  * Identifiers for {@code clock_gettime(2)}.
  *
+ * Clock IDs for operations like {@code clock_gettime}.
+ *
+ * <p>The integer values are binary-compatible with the glibc headers.
  * @see <a href="https://man7.org/linux/man-pages/man2/clock_gettime.2.html">clock_gettime(2)</a>
  */
 public enum ClockId {
-    /** System-wide real-time clock. */
+    /** The system-wide real-time clock. */
     CLOCK_REALTIME(0),
 
-    /** Monotonic clock. */
+    /** Monotonic clock that cannot be set. */
     CLOCK_MONOTONIC(1),
 
     /** CPU time consumed by the process. */
@@ -34,6 +37,7 @@ public enum ClockId {
     CLOCK_REALTIME_ALARM(8),
 
     /** Boot-time clock used for alarms. */
+
     CLOCK_BOOTTIME_ALARM(9),
 
     /** SGI cycle counter. */

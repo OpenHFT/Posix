@@ -3,7 +3,8 @@ package net.openhft.posix.internal.core;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * Utility class to access information about the JVM.
+ * Utility class to access information about the JVM. Values are captured at
+ * class initialisation and never updated.
  */
 public final class Jvm {
 
@@ -11,14 +12,20 @@ public final class Jvm {
     private Jvm() {
     }
 
-    // The architecture of the operating system
+    /**
+     * The architecture of the operating system, captured at class
+     * initialisation and immutable thereafter.
+     */
     static final String OS_ARCH = System.getProperty("os.arch", "?");
 
-    // The vendor of the Java Virtual Machine
+    /**
+     * The vendor of the Java Virtual Machine, captured at class initialisation
+     * and immutable thereafter.
+     */
     static final String VM_VENDOR = System.getProperty("java.vm.vendor", "?");
 
     /**
-     * Checks if the JVM is running on an ARM architecture.
+     * Checks if the JVM is running on an ARM architecture. Thread-safe.
      *
      * @return true if the JVM is running on an ARM architecture, false otherwise.
      */
@@ -28,7 +35,7 @@ public final class Jvm {
     }
 
     /**
-     * Checks if the JVM is 64-bit.
+     * Checks if the JVM is 64-bit. Thread-safe.
      *
      * @return true if the JVM is 64-bit, false otherwise.
      */
@@ -37,7 +44,7 @@ public final class Jvm {
     }
 
     /**
-     * Checks if the JVM is provided by Azul Systems.
+     * Checks if the JVM is provided by Azul Systems. Thread-safe.
      *
      * @return true if the JVM vendor is Azul Systems, false otherwise.
      */

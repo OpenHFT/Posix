@@ -3,19 +3,20 @@ package net.openhft.posix;
 /**
  * Flags for {@code mlockall(2)}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  * @see <a href="https://man7.org/linux/man-pages/man2/mlockall.2.html">mlockall(2)</a>
  */
 public enum MclFlag {
-    /** Lock current pages in memory. */
+    /** Lock all current pages in memory. */
     MclCurrent(1),
 
-    /** Lock future pages in memory. */
+    /** Lock all future pages in memory. */
     MclFuture(2),
 
-    /** Lock current pages on fault. */
+    /** Lock all current pages in memory on fault. */
     MclCurrentOnFault(1 + 4),
 
-    /** Lock future pages on fault. */
+    /** Lock all future pages in memory on fault. */
     MclFutureOnFault(2 + 4);
 
     /** Native constant value. */

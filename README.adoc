@@ -1,6 +1,8 @@
 = Posix
 Peter Lawrey, 31/08/2021
 
+Audience: Internal. Stability: Volatile. See RISK tag in decision log.
+
 Posix library used by OpenHFT.
 
 This supports calls to do with memory mapping which other Posix libraries don't seem to cover.

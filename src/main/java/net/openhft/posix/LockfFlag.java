@@ -3,6 +3,7 @@ package net.openhft.posix;
 /**
  * Operations for {@code lockf(3)}.
  *
+ * <p>The integer values are binary-compatible with the glibc headers.
  * @see <a href="https://man7.org/linux/man-pages/man3/lockf.3.html">lockf(3)</a>
  */
 public enum LockfFlag {
