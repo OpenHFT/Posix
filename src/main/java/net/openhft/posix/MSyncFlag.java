@@ -24,21 +24,10 @@ public enum MSyncFlag {
     // The integer value representing the msync flag
     private final int value;
 
-    /**
-     * Constructor for MSyncFlag.
-     *
-     * @param value The integer value representing the msync flag
-     */
     MSyncFlag(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this MSyncFlag object.
-     *
-     * @return The current integer value of this MSyncFlag object
-     */
     public int value() {
         return value;
     }

@@ -42,21 +42,10 @@ public enum ClockId {
     // The integer value representing the clock ID
     private final int value;
 
-    /**
-     * Constructor for ClockId.
-     *
-     * @param value The integer value representing the clock ID
-     */
     ClockId(int value) {
         this.value = value;
     }
 
-    /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this ClockId object.
-     *
-     * @return The current integer value of this ClockId object
-     */
     public int value() {
         return value;
     }
