@@ -1,8 +1,9 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for file locking (lockf) operations.
- * It defines the operations to be performed on file locks, such as locking, unlocking, and testing locks.
+ * Flags for {@code lockf}.
+ *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum LockfFlag {
     /**

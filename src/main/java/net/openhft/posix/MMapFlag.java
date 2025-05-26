@@ -1,14 +1,15 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for mmap operations.
- * It defines the flags for memory mapping operations, including shared and private mappings.
+ * Flags for {@code mmap}.
+ *
+ * <p>The integer values are binary-compatible with the glibc headers.
  */
 public enum MMapFlag {
-    // Memory mapping to be shared with other processes
+    /** Memory mapping to be shared with other processes. */
     SHARED(1),
 
-    // Memory mapping to be private to the process
+    /** Memory mapping to be private to the process. */
     PRIVATE(2);
 
     // The integer value representing the mmap flag
