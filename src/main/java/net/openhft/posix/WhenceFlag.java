@@ -1,45 +1,41 @@
 package net.openhft.posix;
 
 /**
- * Whence flags for file seeking.
+ * Constants for the {@code lseek(2)} {@code whence} argument.
  *
+ * @see <a href="https://man7.org/linux/man-pages/man2/lseek.2.html">lseek(2)</a>
  */
 public enum WhenceFlag {
-    /**
-     * The offset is set to offset bytes.
-     */
+    /** Offset is set to {@code offset} bytes. */
     SEEK_SET(1),
 
-    /**
-     * The offset is set to its current location plus offset bytes.
-     */
+    /** Add {@code offset} to the current location. */
     SEEK_CUR(2),
 
-    /**
-     * The offset is set to the size of the file plus offset bytes.
-     */
+    /** Set offset relative to end of file. */
     SEEK_END(3),
 
-    /**
-     * Adjust the file offset to the next location in the file greater than or equal to offset containing data.
-     * If offset points to data, then the file offset is set to offset.
-     */
+    /** Move to the next data region at or after {@code offset}. */
     SEEK_DATA(4),
 
-    /**
-     * Adjust the file offset to the next hole in the file greater than or equal to offset.
-     * If offset points into the middle of a hole, then the file offset is set to offset.
-     * If there is no hole past offset, then the file offset is adjusted to the end of the file (i.e., there is an implicit hole at the end of any file).
-     */
+    /** Move to the next hole at or after {@code offset}. */
     SEEK_HOLE(5);
 
     // The integer value representing the whence flag
     private final int value;
 
+    /**
+     * @param value native constant value
+     */
     WhenceFlag(int value) {
         this.value = value;
     }
 
+    /**
+     * Native constant value.
+     *
+     * @return integer to pass to {@code lseek}
+     */
     public int value() {
         return value;
     }

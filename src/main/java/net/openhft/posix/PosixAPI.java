@@ -10,8 +10,15 @@ import java.io.InputStreamReader;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
- * POSIX system access interface.
+ * Facade over a small subset of POSIX needed by Chronicle libraries. The API covers
+ * file descriptors, memory mapping and CPU-affinity helpers but it is not a complete
+ * POSIX implementation. None of the methods are async-signal-safe and therefore must
+ * not be invoked from a signal handler.
  *
+ * See the Linux man-pages for detailed semantics of each call.
+ *
+ * @see <a href="../../adoc/project-requirements.adoc#posix-fn-001">POSIX-FN-001</a>
+ * @see <a href="https://man7.org/linux/man-pages/">Linux man-pages</a>
  */
 public interface PosixAPI {
 
@@ -38,10 +45,11 @@ public interface PosixAPI {
     }
 
     /**
-     * Closes a file descriptor.
+     * Close a file descriptor.
      *
-     * @param fd The file descriptor to close.
-     * @return 0 on success, -1 on error.
+     * @param fd descriptor to close
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/close.2.html">close(2)</a>
      */
     int close(int fd);
 
@@ -54,6 +62,16 @@ public interface PosixAPI {
      * @param length The length of the allocation.
      * @return 0 on success, -1 on error.
      */
+    /**
+     * Preallocate space for a file.
+     *
+     * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
+     * @param fd     descriptor
+     * @param mode   allocation mode
+     * @param offset start offset
+     * @param length bytes to allocate
+     * @return 0 on success, -1 on error
+     */
     int fallocate(int fd, int mode, long offset, long length);
 
     /**
@@ -63,71 +81,85 @@ public interface PosixAPI {
      * @param offset The length to truncate to.
      * @return 0 on success, -1 on error.
      */
+    /**
+     * Truncate a file to the given length.
+     *
+     * @see <a href="https://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate(2)</a>
+     * @param fd     descriptor
+     * @param offset new length
+     * @return 0 on success, -1 on error
+     */
     int ftruncate(int fd, long offset);
 
     /**
-     * Repositions the read/write file offset.
+     * Move the file offset.
      *
-     * @param fd     The file descriptor.
-     * @param offset The offset to seek to.
-     * @param whence The directive for how to seek.
-     * @return The resulting offset location measured in bytes from the beginning of the file.
+     * @param fd     descriptor
+     * @param offset new offset
+     * @param whence how to interpret {@code offset}
+     * @return resulting file position
+     * @see <a href="https://man7.org/linux/man-pages/man2/lseek.2.html">lseek(2)</a>
      */
     default long lseek(int fd, long offset, WhenceFlag whence) {
         return lseek(fd, offset, whence.value());
     }
 
     /**
-     * Repositions the read/write file offset.
+     * Move the file offset.
      *
-     * @param fd     The file descriptor.
-     * @param offset The offset to seek to.
-     * @param whence The directive for how to seek.
-     * @return The resulting offset location measured in bytes from the beginning of the file.
+     * @param fd     descriptor
+     * @param offset new offset
+     * @param whence see {@link WhenceFlag}
+     * @return resulting file position
+     * @see <a href="https://man7.org/linux/man-pages/man2/lseek.2.html">lseek(2)</a>
      */
     long lseek(int fd, long offset, int whence);
 
     /**
-     * Locks a section of a file descriptor.
+     * Apply or test a byte-range lock.
      *
-     * @param fd  The file descriptor.
-     * @param cmd The command to perform.
-     * @param len The length of the section to lock.
-     * @return 0 on success, -1 on error.
+     * @param fd  descriptor
+     * @param cmd command, see {@link LockfFlag}
+     * @param len length in bytes
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man3/lockf.3.html">lockf(3)</a>
      */
     int lockf(int fd, int cmd, long len);
 
     /**
-     * Advises the kernel about how to handle paging input/output.
+     * Wrapper for {@link #madvise(long, long, int)} using {@link MAdviseFlag}.
+     * Thread-safe and does not allocate.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @param advice The advice directive.
-     * @return 0 on success, -1 on error.
+     * @param addr   memory address
+     * @param length length in bytes
+     * @param advice advice flag
+     * @return 0 on success, -1 on error
      */
     default int madvise(long addr, long length, MAdviseFlag advice) {
         return madvise(addr, length, advice.value());
     }
 
     /**
-     * Advises the kernel about how to handle paging input/output.
+     * Provide paging advice to the kernel.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @param advice The advice directive.
-     * @return 0 on success, -1 on error.
+     * @param addr   memory address
+     * @param length length in bytes
+     * @param advice advice bit mask
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/madvise.2.html">madvise(2)</a>
      */
     int madvise(long addr, long length, int advice);
 
     /**
-     * Maps files or devices into memory.
+     * Convenience overload of {@link #mmap(long, long, int, int, int, long)}.
+     * No allocation performed.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @param prot   The desired memory protection.
-     * @param flags  The flags.
-     * @param fd     The file descriptor.
-     * @param offset The offset.
+     * @param addr   address hint
+     * @param length length in bytes
+     * @param prot   protection flags
+     * @param flags  mapping flags
+     * @param fd     file descriptor
+     * @param offset file offset
      * @return The starting address of the mapped area, or {@code -1} if the
      *         mapping failed. A return value of {@code -1} represents
      *         {@code MAP_FAILED} and callers must consult
@@ -138,18 +170,20 @@ public interface PosixAPI {
     }
 
     /**
-     * Maps files or devices into memory.
+     * Map files or devices into memory.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @param prot   The desired memory protection.
-     * @param flags  The flags.
-     * @param fd     The file descriptor.
-     * @param offset The offset.
+     * @param addr   address hint
+     * @param length length in bytes
+     * @param prot   protection bits
+     * @param flags  mapping flags
+     * @param fd     file descriptor
+     * @param offset file offset
+     * @return starting address of the mapped area
      * @return The starting address of the mapped area, or {@code -1} if the
      *         mapping failed. A return value of {@code -1} represents
      *         {@code MAP_FAILED} and callers must consult
      *         {@link #lastError()} for the cause.
+     * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
      */
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 
@@ -194,84 +228,90 @@ public interface PosixAPI {
     }
 
     /**
-     * Synchronizes changes to a file with the storage device.
+     * Convenience overload of {@link #msync(long, long, int)}.
      *
-     * @param address The address.
-     * @param length  The length.
-     * @param flags   The flags.
-     * @return 0 on success, -1 on error.
+     * @param address start address
+     * @param length  length in bytes
+     * @param flags   sync flags
+     * @return 0 on success, -1 on error
      */
     default int msync(long address, long length, MSyncFlag flags) {
         return msync(address, length, flags.value());
     }
 
     /**
-     * Synchronizes changes to a file with the storage device.
+     * Flush modified pages to their backing storage.
      *
-     * @param address The address.
-     * @param length  The length.
-     * @param mode    The synchronization mode.
-     * @return 0 on success, -1 on error.
+     * @param address start address
+     * @param length  length in bytes
+     * @param mode    flags bit mask
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
      */
     int msync(long address, long length, int mode);
 
     /**
-     * Unmaps files or devices from memory.
+     * Unmap a region previously mapped with {@code mmap}.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @return 0 on success, -1 on error.
+     * @param addr   start address
+     * @param length length in bytes
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/munmap.2.html">munmap(2)</a>
      */
     int munmap(long addr, long length);
 
     /**
-     * Opens a file descriptor.
+     * Overload of {@link #open(CharSequence, int, int)} using {@link OpenFlag}.
      *
-     * @param path  The path to the file.
-     * @param flags The flags.
-     * @param perm  The permissions.
-     * @return The file descriptor.
+     * @param path  file to open
+     * @param flags option flags
+     * @param perm  permissions
+     * @return file descriptor
      */
     default int open(CharSequence path, OpenFlag flags, int perm) {
         return open(path, flags.value(), perm);
     }
 
     /**
-     * Opens a file descriptor.
+     * Open a file.
      *
-     * @param path  The path to the file.
-     * @param flags The flags.
-     * @param perm  The permissions.
-     * @return The file descriptor.
+     * @param path  file path
+     * @param flags bit mask of {@code O_*}
+     * @param perm  permissions
+     * @return file descriptor
+     * @see <a href="https://man7.org/linux/man-pages/man2/open.2.html">open(2)</a>
      */
     int open(CharSequence path, int flags, int perm);
 
     /**
-     * Reads from a file descriptor.
+     * Read bytes from a file descriptor into native memory.
      *
-     * @param fd  The file descriptor.
-     * @param dst The destination address.
-     * @param len The number of bytes to read.
-     * @return The number of bytes read.
+     * @param fd  descriptor
+     * @param dst destination address
+     * @param len number of bytes
+     * @return bytes read
+     * @see <a href="https://man7.org/linux/man-pages/man2/read.2.html">read(2)</a>
      */
     long read(int fd, long dst, long len);
 
     /**
-     * Writes to a file descriptor.
+     * Write bytes from native memory to a file descriptor.
      *
-     * @param fd  The file descriptor.
-     * @param src The source address.
-     * @param len The number of bytes to write.
-     * @return The number of bytes written.
+     * @param fd  descriptor
+     * @param src source address
+     * @param len number of bytes
+     * @return bytes written
+     * @see <a href="https://man7.org/linux/man-pages/man2/write.2.html">write(2)</a>
      */
     long write(int fd, long src, long len);
 
     /**
-     * Calculates disk usage for a given filename.
+     * Invokes the {@code du} command to compute disk usage. Spawns a new process
+     * and reads its output. Thread-safe as it performs no shared mutations.
      *
-     * @param filename The filename to calculate disk usage for.
-     * @return The disk usage in bytes.
-     * @throws IOException If an I/O error occurs.
+     * @param filename path to inspect
+     * @return usage in bytes
+     * @throws IOException if the child process fails
      */
     default long du(String filename) throws IOException {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
@@ -284,38 +324,43 @@ public interface PosixAPI {
     }
 
     /**
-     * Gets the current time of day.
+     * Fill the supplied {@code timeval} structure with the current time.
      *
-     * @param timeval The address of the timeval structure.
-     * @return 0 on success, -1 on error.
+     * @param timeval address of a two-field structure
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/gettimeofday.2.html">gettimeofday(2)</a>
      */
     int gettimeofday(long timeval);
 
     /**
-     * Sets the CPU affinity for a process.
+     * Native wrapper for {@code sched_setaffinity(2)}.
      *
-     * @param pid        The process ID.
-     * @param cpusetsize The size of the CPU set.
-     * @param mask       The CPU set mask.
-     * @return 0 on success, -1 on error.
+     * @param pid        process ID
+     * @param cpusetsize size of mask in bytes
+     * @param mask       pointer to CPU mask
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/sched_setaffinity.2.html">sched_setaffinity(2)</a>
      */
     int sched_setaffinity(int pid, int cpusetsize, long mask);
 
     /**
-     * Gets the CPU affinity for a process.
+     * Retrieve CPU affinity mask.
      *
-     * @param pid        The process ID.
-     * @param cpusetsize The size of the CPU set.
-     * @param mask       The CPU set mask.
-     * @return 0 on success, -1 on error.
+     * @param pid        process ID
+     * @param cpusetsize size of mask in bytes
+     * @param mask       pointer to CPU mask
+     * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/sched_getaffinity.2.html">sched_getaffinity(2)</a>
      */
     int sched_getaffinity(int pid, int cpusetsize, long mask);
 
     /**
-     * Returns a summary of the CPU affinity for a given process ID.
+     * Reports the CPU affinity mask for the given process as a compressed string
+     * (for example "0-3,8"). The mask is built using {@link #malloc(long)} and
+     * freed with {@link #free(long)}. This method is thread-safe.
      *
-     * @param pid The process ID.
-     * @return A summary of the CPU affinity as a string.
+     * @param pid process ID
+     * @return comma separated range specification, or "na: <errno>" on failure
      */
     default String sched_getaffinity_summary(int pid) {
         final int nprocs_conf = get_nprocs_conf();
@@ -358,18 +403,20 @@ public interface PosixAPI {
     }
 
     /**
-     * Returns the last error code.
+     * Retrieve the last native error number.
      *
-     * @return The last error code.
+     * @return errno value
      */
     int lastError();
 
     /**
-     * Sets the CPU affinity for a process to a specific CPU.
+     * Pins the process to a single CPU. The method allocates a small mask via
+     * {@link #malloc(long)} and releases it with {@link #free(long)}. It is
+     * safe for concurrent use.
      *
-     * @param pid The process ID.
-     * @param cpu The CPU to set affinity to.
-     * @return 0 on success, -1 on error.
+     * @param pid process ID
+     * @param cpu zero-based CPU index
+     * @return 0 on success, -1 on error
      */
     default int sched_setaffinity_as(int pid, int cpu) {
         final int nprocs_conf = get_nprocs_conf();
@@ -388,12 +435,14 @@ public interface PosixAPI {
     }
 
     /**
-     * Sets the CPU affinity for a process to a range of CPUs.
+     * Binds the process to a contiguous range of CPUs. Uses {@link #malloc(long)}
+     * to build the mask and {@link #free(long)} to release it. The method is
+     * thread-safe and may be called concurrently.
      *
-     * @param pid  The process ID.
-     * @param from The starting CPU.
-     * @param to   The ending CPU.
-     * @return 0 on success, -1 on error.
+     * @param pid  target process ID
+     * @param from first CPU in the range
+     * @param to   last CPU in the range
+     * @return 0 on success, -1 on error
      */
     default int sched_setaffinity_range(int pid, int from, int to) {
         final int nprocs_conf = get_nprocs_conf();
@@ -414,10 +463,11 @@ public interface PosixAPI {
     }
 
     /**
-     * Returns the current wall clock time in microseconds.
-     * Note that clock_gettime() is more accurate if available.
+     * Helper using {@link #malloc(long)} to call {@link #gettimeofday(long)} and
+     * convert the result to microseconds. Memory is released with
+     * {@link #free(long)}. Safe for concurrent use.
      *
-     * @return The wall clock time in microseconds.
+     * @return wall clock time in microseconds or {@code 0} on error
      */
     default long gettimeofday() {
         long ptr = malloc(16);
@@ -433,89 +483,90 @@ public interface PosixAPI {
     }
 
     /**
-     * Returns the current wall clock time in nanoseconds.
+     * Current wall clock time in nanoseconds using {@code CLOCK_REALTIME}.
      *
-     * @return The wall clock time in nanoseconds.
+     * @return wall clock time
      */
     default long clock_gettime() {
         return clock_gettime(0 /* CLOCK_REALTIME */);
     }
 
     /**
-     * Returns the current wall clock time for a specific clock ID in nanoseconds.
+     * Return the wall clock time for a given clock.
      *
-     * @param clockId The clock ID.
-     * @return The wall clock time in nanoseconds.
-     * @throws IllegalArgumentException If the clock ID is invalid.
+     * @param clockId the clock ID
+     * @return wall clock time
+     * @throws IllegalArgumentException if the clock ID is invalid
      */
     default long clock_gettime(ClockId clockId) throws IllegalArgumentException {
         return clock_gettime(clockId.value());
     }
 
     /**
-     * Returns the current wall clock time for a specific clock ID in nanoseconds.
+     * Native wrapper for {@code clock_gettime(2)}.
      *
-     * @param clockId The clock ID.
-     * @return The wall clock time in nanoseconds.
-     * @throws IllegalArgumentException If the clock ID is invalid.
+     * @param clockId the clock ID
+     * @return wall clock time
+     * @throws IllegalArgumentException if the clock ID is invalid
+     * @see <a href="https://man7.org/linux/man-pages/man2/clock_gettime.2.html">clock_gettime(2)</a>
      */
     long clock_gettime(int clockId) throws IllegalArgumentException;
 
     /**
-     * Allocates memory of a specified size.
+     * Allocate native memory.
      *
-     * @param size The size of the memory to allocate.
-     * @return The address of the allocated memory.
+     * @param size number of bytes
+     * @return address of allocated memory
      */
     long malloc(long size);
 
     /**
-     * Frees allocated memory.
+     * Release memory previously allocated with {@link #malloc(long)}.
      *
-     * @param ptr The address of the memory to free.
+     * @param ptr address to free
      */
     void free(long ptr);
 
     /**
-     * Returns the number of available processors.
+     * Number of available processors.
      *
-     * @return The number of available processors.
+     * @return processor count
      */
     int get_nprocs();
 
     /**
-     * Returns the number of configured processors.
+     * Number of configured processors.
      *
-     * @return The number of configured processors.
+     * @return processor count
      */
     int get_nprocs_conf();
 
     /**
-     * Returns the process ID.
+     * Process ID of the calling process.
      *
-     * @return The process ID.
+     * @return pid
      */
     int getpid();
 
     /**
-     * Returns the thread ID.
+     * Thread ID of the caller.
      *
-     * @return The thread ID.
+     * @return tid
      */
     int gettid();
 
     /**
-     * Returns the error message for a given error code.
+     * Convert an errno value to a message.
      *
-     * @param errno The error code.
-     * @return The error message.
+     * @param errno error number
+     * @return message string
      */
     String strerror(int errno);
 
     /**
-     * Returns the last error message.
+     * Human readable form of {@link #lastError()}.
      *
-     * @return The last error message.
+     * @return error message
      */
     default String lastErrorStr() {
         return strerror(lastError());

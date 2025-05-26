@@ -1,33 +1,36 @@
 package net.openhft.posix;
 
 /**
- * Flags for {@code msync}.
+ * Flags for {@code msync(2)}.
  *
  * <p>The integer values are binary-compatible with the glibc headers.
+ * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
  */
 public enum MSyncFlag {
-    /**
-     * Sync memory asynchronously.
-     */
+    /** Sync memory asynchronously. */
     MS_ASYNC(1),
 
-    /**
-     * Invalidate the caches.
-     */
+    /** Invalidate caches. */
     MS_INVALIDATE(2),
 
-    /**
-     * Synchronous memory sync.
-     */
+    /** Synchronous memory sync. */
     MS_SYNC(4);
 
-    // The integer value representing the msync flag
+    /** Native constant value. */
     private final int value;
 
+    /**
+     * @param value native constant value
+     */
     MSyncFlag(int value) {
         this.value = value;
     }
 
+    /**
+     * Constant to pass to {@code msync}.
+     *
+     * @return integer value
+     */
     public int value() {
         return value;
     }

@@ -1,9 +1,12 @@
 package net.openhft.posix;
 
 /**
+ * Identifiers for {@code clock_gettime(2)}.
+ *
  * Clock IDs for operations like {@code clock_gettime}.
  *
  * <p>The integer values are binary-compatible with the glibc headers.
+ * @see <a href="https://man7.org/linux/man-pages/man2/clock_gettime.2.html">clock_gettime(2)</a>
  */
 public enum ClockId {
     /** The system-wide real-time clock. */
@@ -21,31 +24,40 @@ public enum ClockId {
     /** Monotonic clock without NTP adjustments. */
     CLOCK_MONOTONIC_RAW(4),
 
-    /** Real-time clock with coarse granularity. */
+    /** Faster but coarse real-time clock. */
     CLOCK_REALTIME_COARSE(5),
 
-    /** Monotonic clock with coarse granularity. */
+    /** Faster but coarse monotonic clock. */
     CLOCK_MONOTONIC_COARSE(6),
 
-    /** Monotonic clock that includes suspend time. */
+    /** Monotonic clock including suspend time. */
     CLOCK_BOOTTIME(7),
 
-    /** Real-time clock used to set alarms. */
+    /** Real-time clock used for alarms. */
     CLOCK_REALTIME_ALARM(8),
 
-    /** Boot-time clock used to set alarms. */
+    /** Boot-time clock used for alarms. */
+
     CLOCK_BOOTTIME_ALARM(9),
 
     /** SGI cycle counter. */
     CLOCK_SGI_CYCLE(10);
 
-    // The integer value representing the clock ID
+    /** Native constant value. */
     private final int value;
 
+    /**
+     * @param value native constant value
+     */
     ClockId(int value) {
         this.value = value;
     }
 
+    /**
+     * Constant to pass to {@code clock_gettime}.
+     *
+     * @return integer value
+     */
     public int value() {
         return value;
     }

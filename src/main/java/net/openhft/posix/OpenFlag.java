@@ -1,9 +1,9 @@
 package net.openhft.posix;
 
 /**
- * Flags for {@code open}.
+ * Flags for {@code open(2)}.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * @see <a href="https://man7.org/linux/man-pages/man2/open.2.html">open(2)</a>
  */
 public enum OpenFlag {
     /** Open for reading only. */
@@ -42,13 +42,21 @@ public enum OpenFlag {
     /** Error if already exists. */
     O_EXCL(0x0800);
 
-    // The integer value representing the open flag
+    /** Native constant value. */
     final int value;
 
+    /**
+     * @param value native constant value
+     */
     OpenFlag(int value) {
         this.value = value;
     }
 
+    /**
+     * Constant to pass to {@code open}.
+     *
+     * @return integer value
+     */
     public int value() {
         return value;
     }

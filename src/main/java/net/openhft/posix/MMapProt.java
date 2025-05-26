@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Protection flags for {@code mmap}.
+ * Protection flags for {@code mmap(2)}.
  *
  * <p>The integer values are binary-compatible with the glibc headers.
+ * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapProt {
     /** Allow read access. */
@@ -24,13 +25,21 @@ public enum MMapProt {
     /** No access allowed. */
     PROT_NONE(8);
 
-    // The integer value representing the memory protection level
+    /** Native constant value. */
     final int value;
 
+   /**
+     * @param value native constant value
+     */
     MMapProt(int value) {
         this.value = value;
     }
 
+    /**
+     * Constant to pass to {@code mmap}.
+     *
+     * @return integer value
+     */
     public int value() {
         return value;
     }

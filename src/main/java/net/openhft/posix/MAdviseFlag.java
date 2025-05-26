@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Advice flags for {@code madvise}.
+ * Advice flags for {@code madvise(2)}.
  *
  * <p>The integer values are binary-compatible with the glibc headers.
+ * @see <a href="https://man7.org/linux/man-pages/man2/madvise.2.html">madvise(2)</a>
  */
 public enum MAdviseFlag {
     /** No further special treatment. */
@@ -57,13 +58,21 @@ public enum MAdviseFlag {
     /** Undo MADV_WIPEONFORK. */
     MADV_KEEPONFORK(19);
 
-    // The integer value representing the madvise flag
+    /** Native constant value. */
     final int value;
 
+    /**
+     * @param value native constant value
+     */
     MAdviseFlag(int value) {
         this.value = value;
     }
 
+    /**
+     * Constant to pass to {@code madvise}.
+     *
+     * @return integer value
+     */
     public int value() {
         return value;
     }
