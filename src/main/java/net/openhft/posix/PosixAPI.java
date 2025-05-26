@@ -16,7 +16,14 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 public interface PosixAPI {
 
     /**
-     * @return The fastest available PosixAPI implementation.
+     * Returns the lazily initialised {@link PosixAPI} instance.
+     * The method is idempotent but not thread-safe until the first
+     * successful load. Providers are attempted in the order
+     * {@code JNRPosixAPI}, {@code WinJNRPosixAPI},
+     * {@code JNAPosixAPI}, {@code NoOpPosixAPI} as set out in
+     * POSIX-FN-002.
+     *
+     * @return the selected PosixAPI
      */
     static PosixAPI posix() {
         PosixAPIHolder.loadPosixApi();
