@@ -3,8 +3,8 @@ package net.openhft.posix.internal.core;
 import static net.openhft.posix.internal.core.Jvm.OS_ARCH;
 
 /**
- * Utility class to access information about the operating system. Values are
- * captured at class initialisation and never updated.
+ * Exposes static details about the host operating system.
+ * Values are captured when the class loads and never updated.
  */
 public final class OS {
 
@@ -14,14 +14,14 @@ public final class OS {
      */
     public static final String OS_NAME = System.getProperty("os.name", "?");
 
-    // Suppresses default constructor, ensuring non-instantiability
+    /** Private constructor to prevent instantiation. */
     private OS() {
     }
 
     /**
-     * Checks if the operating system is macOS. Thread-safe.
+     * Determines if the OS is macOS.
      *
-     * @return true if the operating system is macOS, false otherwise.
+     * @return true when running on macOS
      */
     public static boolean isMacOSX() {
         return OS_NAME.equals("Mac OS X");

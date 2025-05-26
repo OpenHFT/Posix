@@ -3,12 +3,12 @@ package net.openhft.posix.internal.core;
 import net.openhft.posix.internal.UnsafeMemory;
 
 /**
- * Utility class to access information about the JVM. Values are captured at
- * class initialisation and never updated.
+ * Exposes static information about the running JVM.
+ * Values are captured when the class loads and never updated.
  */
 public final class Jvm {
 
-    // Suppresses default constructor, ensuring non-instantiability
+    /** Private constructor to prevent instantiation. */
     private Jvm() {
     }
 
@@ -25,9 +25,9 @@ public final class Jvm {
     static final String VM_VENDOR = System.getProperty("java.vm.vendor", "?");
 
     /**
-     * Checks if the JVM is running on an ARM architecture. Thread-safe.
+     * Detects if the JVM runs on an ARM CPU.
      *
-     * @return true if the JVM is running on an ARM architecture, false otherwise.
+     * @return true when the JVM is hosted on ARM
      */
     public static boolean isArm() {
         return Boolean.parseBoolean(System.getProperty("jvm.isarm")) ||
@@ -35,18 +35,18 @@ public final class Jvm {
     }
 
     /**
-     * Checks if the JVM is 64-bit. Thread-safe.
+     * Determines if the JVM is 64-bit.
      *
-     * @return true if the JVM is 64-bit, false otherwise.
+     * @return true for a 64-bit JVM
      */
     public static boolean is64bit() {
         return UnsafeMemory.IS64BIT;
     }
 
     /**
-     * Checks if the JVM is provided by Azul Systems. Thread-safe.
+     * Determines if the JVM vendor is Azul Systems.
      *
-     * @return true if the JVM vendor is Azul Systems, false otherwise.
+     * @return true when running on Azul Systems
      */
     public static boolean isAzul() {
         return VM_VENDOR.startsWith("Azul ");
