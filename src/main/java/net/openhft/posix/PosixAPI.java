@@ -27,8 +27,7 @@ public interface PosixAPI {
      * The method is idempotent but not thread-safe until the first
      * successful load. Providers are attempted in the order
      * {@code JNRPosixAPI}, {@code WinJNRPosixAPI},
-     * {@code JNAPosixAPI}, {@code NoOpPosixAPI} as set out in
-     * POSIX-FN-002.
+     * {@code NoOpPosixAPI} as set out in POSIX-FN-002.
      *
      * @return the selected PosixAPI
      */
@@ -38,7 +37,9 @@ public interface PosixAPI {
     }
 
     /**
-     * Sets the PosixAPI to a no-op implementation.
+     * Replace the active provider with a stub that performs no native
+     * operations. Intended for use when the real implementation cannot be
+     * loaded. This call always succeeds.
      */
     static void useNoOpPosixApi() {
         PosixAPIHolder.useNoOpPosixApi();
@@ -54,15 +55,6 @@ public interface PosixAPI {
     int close(int fd);
 
     /**
-     * Allocates space for a file descriptor.
-     *
-     * @param fd     The file descriptor.
-     * @param mode   The allocation mode.
-     * @param offset The offset in the file.
-     * @param length The length of the allocation.
-     * @return 0 on success, -1 on error.
-     */
-    /**
      * Preallocate space for a file.
      *
      * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
@@ -74,13 +66,6 @@ public interface PosixAPI {
      */
     int fallocate(int fd, int mode, long offset, long length);
 
-    /**
-     * Truncates a file descriptor to a specified length.
-     *
-     * @param fd     The file descriptor.
-     * @param offset The length to truncate to.
-     * @return 0 on success, -1 on error.
-     */
     /**
      * Truncate a file to the given length.
      *
@@ -187,41 +172,50 @@ public interface PosixAPI {
     long mmap(long addr, long length, int prot, int flags, int fd, long offset);
 
     /**
-     * Locks a range of the process's virtual address space into RAM.
+     * Attempt to pin a region of virtual memory so it will not be swapped
+     * out. The default implementation simply returns {@code false}. It may
+     * fail if the operating system does not support memory locking or the
+     * process exceeds its {@code RLIMIT_MEMLOCK} limit.
      *
-     * @param addr   The address.
-     * @param length The length.
-     * @return false, indicating the operation is not supported.
+     * @param addr   start address
+     * @param length number of bytes to lock
+     * @return {@code true} on success, {@code false} otherwise
      */
     default boolean mlock(long addr, long length) {
         return false;
     }
 
     /**
-     * Locks a range of the process's virtual address space into RAM.
+     * Variant of {@link #mlock(long, long)} that can delay locking until the
+     * first access when {@code lockOnFault} is {@code true}. The default
+     * implementation returns {@code false}. Failure reasons mirror those of
+     * {@code mlock} and also include lack of kernel support for {@code mlock2}.
      *
-     * @param addr        The address.
-     * @param length      The length.
-     * @param lockOnFault Whether to lock on fault.
-     * @return false, indicating the operation is not supported.
+     * @param addr        start address
+     * @param length      number of bytes to lock
+     * @param lockOnFault defer locking until the memory is touched
+     * @return {@code true} on success, {@code false} otherwise
      */
     default boolean mlock2(long addr, long length, boolean lockOnFault) {
         return false;
     }
 
     /**
-     * Locks all current and future pages into RAM.
+     * Locks all current and future mappings as per {@link #mlockall(int)}.
      *
-     * @param flags The flags.
+     * @param flags bit mask of options
      */
     default void mlockall(MclFlag flags) {
         mlockall(flags.code());
     }
 
     /**
-     * Locks all current and future pages into RAM.
+     * Lock all current and future memory mappings. The default implementation
+     * is a no-op. Calls typically fail when the process exceeds its
+     * {@code RLIMIT_MEMLOCK} or the platform does not implement the
+     * operation.
      *
-     * @param flags The flags.
+     * @param flags bit mask of options
      */
     default void mlockall(int flags) {
     }
