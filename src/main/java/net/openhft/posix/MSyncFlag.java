@@ -1,42 +1,36 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for memory synchronization (msync) operations.
- * It defines the flags used to control the behavior of memory synchronization operations.
+ * Flags for {@code msync(2)}.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
+ * @since 2.27
  */
 public enum MSyncFlag {
-    /**
-     * Sync memory asynchronously.
-     */
+    /** Sync memory asynchronously. */
     MS_ASYNC(1),
 
-    /**
-     * Invalidate the caches.
-     */
+    /** Invalidate caches. */
     MS_INVALIDATE(2),
 
-    /**
-     * Synchronous memory sync.
-     */
+    /** Synchronous memory sync. */
     MS_SYNC(4);
 
-    // The integer value representing the msync flag
+    /** Native constant value. */
     private final int value;
 
     /**
-     * Constructor for MSyncFlag.
-     *
-     * @param value The integer value representing the msync flag
+     * @param value native constant value
      */
     MSyncFlag(int value) {
         this.value = value;
     }
 
     /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this MSyncFlag object.
+     * Constant to pass to {@code msync}.
      *
-     * @return The current integer value of this MSyncFlag object
+     * @return integer value
+     * @since 2.27
      */
     public int value() {
         return value;
