@@ -1,14 +1,20 @@
 /**
- * Provides a portable subset of POSIX operations.
- * The provider is chosen at initialisation time via
- * {@link net.openhft.posix.internal.PosixAPIHolder} so the same code works
- * across Linux, macOS and Windows.
+ * Portable subset of POSIX operations.
+ * {@link net.openhft.posix.internal.PosixAPIHolder} selects the best provider
+ * so the same calls work on Linux, macOS and Windows.
  *
- * Usage example:
+ * Memory example:
  * <pre>
  *     PosixAPI posix = PosixAPI.posix();
  *     long ptr = posix.malloc(128);
  *     posix.free(ptr);
+ * </pre>
+ *
+ * File example:
+ * <pre>
+ *     PosixAPI posix = PosixAPI.posix();
+ *     int fd = posix.open("/tmp/data", OpenFlag.O_CREAT, 0644);
+ *     posix.close(fd);
  * </pre>
  *
  * All helpers strive for zero heap allocation.
