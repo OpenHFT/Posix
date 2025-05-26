@@ -43,6 +43,9 @@ public final class Mapping {
      * Parses a mapping line from {@code /proc/[pid]/maps}.
      *
      * @param line textual line from the maps file
+     * @throws NumberFormatException        if address or inode fields are not
+     *                                      valid hex or decimal numbers
+     * @throws ArrayIndexOutOfBoundsException if fields are missing
      */
     public Mapping(String line) {
         String[] parts = line.split(" +");
