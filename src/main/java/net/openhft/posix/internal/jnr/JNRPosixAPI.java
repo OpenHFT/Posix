@@ -19,7 +19,10 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
  * Implementation of {@link PosixAPI} using JNR (Java Native Runtime).
- * Provides POSIX-like methods for file and memory operations, leveraging the JNR library.
+ *
+ * <p>Where a JNR binding is absent this class issues raw syscalls using
+ * hard-coded numbers chosen for common architectures.  If the kernel does not
+ * recognise a number the call gracefully falls back to the available wrapper.</p>
  */
 public final class JNRPosixAPI implements PosixAPI {
 
@@ -61,6 +64,8 @@ public final class JNRPosixAPI implements PosixAPI {
 
     /**
      * Determines the appropriate method for getting the thread ID (gettid).
+     * The JNR binding is tried first and, if missing, the raw syscall numbers
+     * 224 or 186 are used.
      *
      * @return A supplier for the gettid method.
      */
@@ -234,6 +239,10 @@ public final class JNRPosixAPI implements PosixAPI {
         return jnr.msync(address, length, flags);
     }
 
+    /**
+     * RAII helper wrapping {@code flock}.  {@link #close()} may be invoked more
+     * than once and will simply attempt to release the lock again.
+     */
     public class FileLocker implements AutoCloseable {
         private final int fd;
 
