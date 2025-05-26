@@ -11,10 +11,10 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /**
  * Facade over a small subset of POSIX needed by Chronicle libraries. The API covers
- * file descriptors, memory mapping and CPU-affinity helpers but it is not a complete
+ * file descriptors, memory mapping and CPU-affinity helpers, but it is not a complete
  * POSIX implementation. None of the methods are async-signal-safe and therefore must
  * not be invoked from a signal handler.
- *
+ * <p>
  * See the Linux man-pages for detailed semantics of each call.
  *
  * @see <a href="../../adoc/project-requirements.adoc#posix-fn-001">POSIX-FN-001</a>
@@ -557,7 +557,7 @@ public interface PosixAPI {
     String strerror(int errno);
 
     /**
-     * Human readable form of {@link #lastError()}.
+     * Human-readable form of {@link #lastError()}.
      *
      * @return error message
      */

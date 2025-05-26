@@ -15,7 +15,7 @@ public enum MMapFlag {
     PRIVATE(2);
 
     /** Native constant value. */
-    private int value;
+    private final int value;
 
     /**
      * @param value native constant value

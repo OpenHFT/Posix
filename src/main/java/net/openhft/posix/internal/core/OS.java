@@ -1,7 +1,5 @@
 package net.openhft.posix.internal.core;
 
-import static net.openhft.posix.internal.core.Jvm.OS_ARCH;
-
 /**
  * Exposes static details about the host operating system.
  * Values are captured when the class loads and never updated.

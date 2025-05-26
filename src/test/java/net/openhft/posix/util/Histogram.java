@@ -53,7 +53,7 @@ public class Histogram {
     }
 
     /**
-     * @return Histogram for use with System.nanoTime() up to 4 second delay.
+     * @return Histogram for use with System.nanoTime() up to 4-second delay.
      */
     public static Histogram timeMicros() {
         return new Histogram(22 /* 4 seconds */, 3 /* 2 decimal places */, 1000.0 /* nano-seconds */);

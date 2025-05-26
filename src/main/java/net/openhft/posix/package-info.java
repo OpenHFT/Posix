@@ -2,7 +2,7 @@
  * Portable subset of POSIX operations.
  * {@link net.openhft.posix.internal.PosixAPIHolder} selects the best provider
  * so the same calls work on Linux, macOS and Windows.
- *
+ * <p>
  * Memory example:
  * <pre>
  *     PosixAPI posix = PosixAPI.posix();

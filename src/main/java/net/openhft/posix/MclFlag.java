@@ -21,7 +21,7 @@ public enum MclFlag {
     MclFutureOnFault(2 + 4);
 
     /** Native constant value. */
-    private int code;
+    private final int code;
 
     /**
      * @param code native constant value

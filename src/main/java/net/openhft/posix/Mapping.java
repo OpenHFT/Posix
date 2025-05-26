@@ -4,12 +4,11 @@ import net.openhft.posix.internal.UnsafeMemory;
 
 /**
  * Representation of one line from {@code /proc/[pid]/maps}.
- *
- *
+ * <p>
  * Example line:
  * {@code 00400000-0040b000 r-xp 00000000 08:02 367546 /bin/cat}
  * <br>addr range | perms | offset | device | inode | path
- *
+ * <p>
  * On a 32-bit VM the addresses are truncated.
  * Instances are thread-safe and immutable.
  * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>

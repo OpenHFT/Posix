@@ -12,7 +12,7 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Parses {@code /proc/[pid]/maps} on Linux only.
- *
+ * <p>
  * Instantiation fails with an {@link IOException} if the proc file system is
  * missing. The mapping list is immutable and reflects the state at construction
  * time.

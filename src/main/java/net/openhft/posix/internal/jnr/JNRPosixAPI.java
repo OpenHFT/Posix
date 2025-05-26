@@ -148,7 +148,7 @@ public final class JNRPosixAPI implements PosixAPI {
      */
     private int mlock2_(long addr, long length, boolean lockOnFault) {
         // Degrade to mlock for all platforms if lockOnFault not set
-        // or always for macos which doesn't support mlock2 at all
+        // or always for macOS which doesn't support mlock2 at all
         if (!lockOnFault || OS.isMacOSX())
             return jnr.mlock(addr, length);
 

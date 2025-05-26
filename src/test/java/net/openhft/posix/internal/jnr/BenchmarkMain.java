@@ -50,7 +50,7 @@ read to write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9
 public class BenchmarkMain {
     static final Unsafe UNSAFE;
     private static final long THROUGHPUT = Long.getLong("throughput", 1_400_000);
-    static int[] blackhole = new int[512 / 4];
+    static final int[] blackhole = new int[512 / 4];
 
     static {
         try {
@@ -200,6 +200,7 @@ public class BenchmarkMain {
                         System.out.println("i: " + i + ", took " + time / 1000 + " us.");
                     next += interval;
                     while (System.nanoTime() < next) {
+                        // spin until the next interval
                     }
                 }
             }
