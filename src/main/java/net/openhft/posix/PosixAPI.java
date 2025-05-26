@@ -178,7 +178,6 @@ public interface PosixAPI {
      * @param flags  mapping flags
      * @param fd     file descriptor
      * @param offset file offset
-     * @return starting address of the mapped area
      * @return The starting address of the mapped area, or {@code -1} if the
      *         mapping failed. A return value of {@code -1} represents
      *         {@code MAP_FAILED} and callers must consult
@@ -360,7 +359,7 @@ public interface PosixAPI {
      * freed with {@link #free(long)}. This method is thread-safe.
      *
      * @param pid process ID
-     * @return comma separated range specification, or "na: <errno>" on failure
+     * @return comma separated range specification, or "na: {errno}" on failure
      */
     default String sched_getaffinity_summary(int pid) {
         final int nprocs_conf = get_nprocs_conf();
