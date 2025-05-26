@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Flags for {@code msync(2)}.
+ * Flags for the {@code msync(2)} system call.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
  */
 public enum MSyncFlag {
@@ -27,9 +28,9 @@ public enum MSyncFlag {
     }
 
     /**
-     * Constant to pass to {@code msync}.
+     * Returns the native integer to pass to {@code msync}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;

@@ -1,9 +1,10 @@
 package net.openhft.posix;
 
 /**
- * Flags for {@code mlockall(2)}.
+ * Flags for the {@code mlockall(2)} system call.
  *
- * <p>The integer values are binary-compatible with the glibc headers.
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man2/mlockall.2.html">mlockall(2)</a>
  */
 public enum MclFlag {
@@ -30,9 +31,9 @@ public enum MclFlag {
     }
 
     /**
-     * Constant to pass to {@code mlockall}.
+     * Returns the native integer to pass to {@code mlockall}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int code() {
         return code;

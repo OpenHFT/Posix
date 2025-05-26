@@ -1,7 +1,9 @@
 package net.openhft.posix;
 
 /**
- * Flags for {@code open(2)}.
+ * Flags for the {@code open(2)} system call.
+ *
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
  *
  * @see <a href="https://man7.org/linux/man-pages/man2/open.2.html">open(2)</a>
  */
@@ -53,9 +55,9 @@ public enum OpenFlag {
     }
 
     /**
-     * Constant to pass to {@code open}.
+     * Returns the native integer to pass to {@code open}.
      *
-     * @return integer value
+     * @return native integer constant
      */
     public int value() {
         return value;

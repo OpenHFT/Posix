@@ -3,6 +3,8 @@ package net.openhft.posix;
 /**
  * Constants for the {@code lseek(2)} {@code whence} argument.
  *
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
  * @see <a href="https://man7.org/linux/man-pages/man2/lseek.2.html">lseek(2)</a>
  */
 public enum WhenceFlag {
@@ -32,9 +34,9 @@ public enum WhenceFlag {
     }
 
     /**
-     * Native constant value.
+     * Returns the native integer to pass to {@code lseek}.
      *
-     * @return integer to pass to {@code lseek}
+     * @return native integer constant
      */
     public int value() {
         return value;
