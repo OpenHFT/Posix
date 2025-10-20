@@ -1,45 +1,45 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different memory protection options for mmap.
- * It defines the protection levels for memory mapping operations, including read, write, execute, and none.
+ * Protection flags for the {@code mmap(2)} system call.
+ *
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapProt {
-    // Memory protection to allow read access
+    /** Allow read access. */
     PROT_READ(1),
 
-    // Memory protection to allow write access
+    /** Allow write access. */
     PROT_WRITE(2),
 
-    // Memory protection to allow both read and write access
+    /** Allow both read and write access. */
     PROT_READ_WRITE(3),
 
-    // Memory protection to allow execute access
+    /** Allow execute access. */
     PROT_EXEC(4),
 
-    // Memory protection to allow both execute and read access
+    /** Allow execute and read access. */
     PROT_EXEC_READ(5),
 
-    // Memory protection to allow no access
+    /** No access allowed. */
     PROT_NONE(8);
 
-    // The integer value representing the memory protection level
+    /** Native constant value. */
     final int value;
 
-    /**
-     * Constructor for MMapProt.
-     *
-     * @param value The integer value representing the memory protection level
+   /**
+     * @param value native constant value
      */
     MMapProt(int value) {
         this.value = value;
     }
 
     /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this MMapProt object.
+     * Returns the native integer to pass to {@code mmap}.
      *
-     * @return The current integer value of this MMapProt object
+     * @return native integer constant
      */
     public int value() {
         return value;

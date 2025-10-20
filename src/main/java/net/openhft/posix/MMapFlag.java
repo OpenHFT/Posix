@@ -1,33 +1,33 @@
 package net.openhft.posix;
 
 /**
- * This enum represents the different flags for mmap operations.
- * It defines the flags for memory mapping operations, including shared and private mappings.
+ * Mapping flags for the {@code mmap(2)} system call.
+ *
+ * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapFlag {
-    // Memory mapping to be shared with other processes
+    /** Memory mapping to be shared with other processes. */
     SHARED(1),
 
-    // Memory mapping to be private to the process
+    /** Memory mapping to be private to the process. */
     PRIVATE(2);
 
-    // The integer value representing the mmap flag
-    private int value;
+    /** Native constant value. */
+    private final int value;
 
     /**
-     * Constructor for MMapFlag.
-     *
-     * @param value The integer value representing the mmap flag
+     * @param value native constant value
      */
     MMapFlag(int value) {
         this.value = value;
     }
 
     /**
-     * This method is a getter for the value instance variable.
-     * It returns the current integer value of this MMapFlag object.
+     * Returns the native integer to pass to {@code mmap}.
      *
-     * @return The current integer value of this MMapFlag object
+     * @return native integer constant
      */
     public int value() {
         return value;

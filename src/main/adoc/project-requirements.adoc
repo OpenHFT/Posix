@@ -1,0 +1,87 @@
+= Functional Requirements - OpenHFT Posix
+:doctype: book
+:toc:
+:encoding: ISO-8859-1
+:lang: en-GB
+
+== Introduction
+
+_OpenHFT Posix_ is a low-level Java façade over selected POSIX / Linux
+system calls, aimed at deterministic, zero-GC latency paths in trading
+workloads.  It runs on Linux, macOS, Windows and in sandboxed CI by
+degrading to a *No-Op* implementation.
+
+== POSIX-FN-Requirements
+
+[cols="1,5,5"]
+|===
+| *ID* | *Title* | *Description*
+
+| POSIX-FN-001
+| Java façade
+| Provide a public `net.openhft.posix.PosixAPI` interface grouping
+File-I/O, Memory-mapping, Memory-advice, Process/Thread info,
+CPU-affinity and Timing primitives.
+
+| POSIX-FN-002
+| Automatic provider selection
+| At static initialisation choose the fastest compatible provider in
+order: `JNRPosixAPI`, `WinJNRPosixAPI`, `JNAPosixAPI`, `NoOpPosixAPI`;
+store in `PosixAPIHolder.POSIX_API`.
+
+| POSIX-FN-003
+| Deterministic error handling
+| Translate every native failure into a `PosixRuntimeException`;
+expose `lastError()` and `strerror(int)`.
+
+| POSIX-FN-004
+| File-descriptor lifecycle
+| Implement `open`, `close`, `ftruncate`, `lseek`, `read`, `write`,
+`lockf`, `flock` with flag enums mapping bit-for-bit to the kernel.
+
+| POSIX-FN-005
+| Memory-mapping
+| Support `mmap`, `munmap`, `madvise`, `msync`, `mlock`, `mlock2`,
+`mlockall`; degrade gracefully on unsupported kernels/VMs; provide
+full flag coverage via `MMapProt`, `MMapFlag`, `MAdviseFlag`,
+`MSyncFlag`, `MclFlag`.
+
+| POSIX-FN-006
+| File space pre-allocation
+| Implement `fallocate` strategy chain: `fallocate64` -> `fallocate`
+-> `posix_fallocate` (mode 0); return `-1` only if all fail.
+
+| POSIX-FN-007
+| CPU-affinity helpers
+| Provide heap-free helpers `sched_setaffinity_as(int)`,
+`sched_setaffinity_range(int,int)`,
+`sched_getaffinity_summary(int)`.
+
+| POSIX-FN-008
+| High-resolution timing
+| `clock_gettime(ClockId)` returns monotonic nanoseconds where
+available; default overload uses `CLOCK_REALTIME`.
+
+| POSIX-FN-009
+| Zero-GC heap bypass
+| Expose raw `malloc`/`free` wrappers (Unsafe on Windows, libc elsewhere)
+for off-heap buffers usable by JNI/direct I-O.
+
+| POSIX-FN-010
+| No-Op provider contract
+| `NoOpPosixAPI` compiles everywhere, returning `0` for safe no-ops,
+`-1` or throwing for operations where silent failure risks data loss.
+Its `lastError()` method always returns `0`.
+
+| POSIX-FN-011
+| Pure introspection helpers
+| `Jvm.*`, `OS.*`, `UnsafeMemory.IS64BIT` *shall be* side-effect-free
+pure functions, safe in static initialisers.
+
+| POSIX-FN-012
+| Command-line diagnostics
+| Provide `BenchmarkMain` executable exercising mmap/lock/sync loops and
+printing a latency histogram; exit 0 when all checks pass.
+|===
+
+
