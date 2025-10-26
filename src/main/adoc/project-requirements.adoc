@@ -1,6 +1,7 @@
 = Functional Requirements - OpenHFT Posix
 :doctype: book
 :toc:
+:sectnums:
 :encoding: ISO-8859-1
 :lang: en-GB
 
@@ -83,5 +84,4 @@ pure functions, safe in static initialisers.
 | Provide `BenchmarkMain` executable exercising mmap/lock/sync loops and
 printing a latency histogram; exit 0 when all checks pass.
 |===
-
 

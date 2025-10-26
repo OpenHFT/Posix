@@ -1,6 +1,7 @@
 = Decision Log – OpenHFT Posix
 :doctype: book
 :toc:
+:sectnums:
 :icons: font
 :lang: en-GB
 :encoding: ISO-8859-1

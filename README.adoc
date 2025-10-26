@@ -1,6 +1,7 @@
 = Posix
 Peter Lawrey, 31/08/2021
 :toc:
+:sectnums:
 :icons: font
 :encoding: ISO-8859-1
 :lang: en-GB
@@ -123,4 +124,3 @@ Add JVM arg:
 * link:src/main/adoc/project-requirements.adoc[Functional requirements]
 * link:src/main/adoc/decision-log.adoc[Architecture decision log]
 * link:https://man7.org/linux/man-pages/[Linux man-pages]
-
