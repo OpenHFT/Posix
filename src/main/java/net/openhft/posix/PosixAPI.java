@@ -362,9 +362,7 @@ public interface PosixAPI {
      * @return 0 on success, -1 on error.
      */
     default int sched_setaffinity_as(int pid, int cpu) {
-        final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(Long.BYTES,
-                (int) ((((long) nprocs_conf + (Long.SIZE - 1)) / Long.SIZE) * Long.BYTES));
+        final int size = requiredMaskBytes(Math.max(cpu, Math.max(0, get_nprocs_conf() - 1)));
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
@@ -387,9 +385,9 @@ public interface PosixAPI {
      * @return 0 on success, -1 on error.
      */
     default int sched_setaffinity_range(int pid, int from, int to) {
-        final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(Long.BYTES,
-                (int) ((((long) nprocs_conf + (Long.SIZE - 1)) / Long.SIZE) * Long.BYTES));
+        if (to < from)
+            throw new IllegalArgumentException("from (" + from + ") must be <= to (" + to + ')');
+        final int size = requiredMaskBytes(Math.max(to, Math.max(0, get_nprocs_conf() - 1)));
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
@@ -405,6 +403,21 @@ public interface PosixAPI {
         } finally {
             free(ptr);
         }
+    }
+
+    /**
+     * Calculates the number of bytes required to store a CPU mask that includes the supplied index.
+     *
+     * @param highestCpuInclusive highest CPU index we need to represent
+     * @return number of bytes rounded up to the nearest multiple of {@link Long#BYTES}
+     */
+    static int requiredMaskBytes(int highestCpuInclusive) {
+        int cpus = Math.max(0, highestCpuInclusive) + 1;
+        long words = ((long) cpus + (Long.SIZE - 1)) / Long.SIZE;
+        long bytes = Math.max(1L, words) * Long.BYTES;
+        if (bytes > Integer.MAX_VALUE)
+            throw new IllegalArgumentException("CPU mask exceeds supported size: " + bytes + " bytes");
+        return (int) bytes;
     }
 
     /**

@@ -16,7 +16,7 @@ import net.openhft.posix.PosixAPI;
  * the JVM.</p>
  */
 public abstract class JNAPosixAPI implements PosixAPI {
-    private static final Pointer NULL = Pointer.createConstant(0);
+    private static final Pointer NULL = Pointer.NULL;
 
     // JNA interface for POSIX functions
     private final JNAPosixInterface jna = new JNAPosixInterface();
