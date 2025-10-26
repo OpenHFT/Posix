@@ -12,6 +12,7 @@
 | POSIX-FN-002 | Provider Fallback Order | 2025-05-26 | FN, NF-P
 | ALL-DOC-002 | Real-Time Documentation Loop | 2025-05-26 | DOC, OPS
 | POSIX-NF-O-003 | No-Op Provider Contract | 2025-05-26 | NF-O, TEST
+| POSIX-NF-O-006 | Affinity Mask Sizing Policy | 2025-05-27 | NF-O, TEST
 | ALL-OPS-004 | Nine-Box Tag Taxonomy Adoption | 2025-05-26 | OPS
 |===
 
@@ -78,6 +79,29 @@ Some environments (Graal native-image, security-restricted CI) cannot load nativ
 *Decision*::
 `NoOpPosixAPI` compiles everywhere, returns **0** for safe no-ops, **-1** (or
 throws `PosixRuntimeException(errno=ENOSYS)`) where silent failure may lose data.
+
+== POSIX-NF-O-006 Affinity Mask Sizing Policy
+
+*Context*::
+Regression POSIX-2025-05 observed incorrect CPU pinning on hosts with more than
+thirty-two logical processors. Bit masks were truncated because offsets used
+byte indices rather than `int` words and mask buffers were only sized for a
+single `long`.
+
+*Decision*::
+* Introduce `CpuSetUtil` to normalise mask sizing (round up to whole
+  `Long.BYTES` blocks) and byte packing.
+* Apply the helper in `PosixJNAAffinity` and export the same contract to
+  embedding projects (Java Thread Affinity).
+* Add pure-Java tests that simulate > 64-core schedulers.
+
+*Alternatives*::
+*Hard-code buffer sizes per architecture* – rejected because it risks further
+drift when porting to new platforms.
+
+*Consequences*::
+* Mask handling now covers arbitrary CPU counts permitted by the kernel.
+* Shared utility simplifies future native integrations.
 `lastError()` fixed at **0**.
 
 *Consequences*::

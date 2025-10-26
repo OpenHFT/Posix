@@ -7,20 +7,17 @@ import net.openhft.posix.internal.jnr.WinJNRPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
 /**
- * Holds the selected {@link PosixAPI} provider for this JVM.
- * <p>The fallback order is {@code JNRPosixAPI},
- * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}.</p>
+ * This class holds the instance of the {@link PosixAPI} to be used.
+ * It loads the appropriate PosixAPI implementation based on the native platform.
  */
 public class PosixAPIHolder {
-    /** Selected provider instance once initialised. */
+    // The PosixAPI instance to be used
     public static PosixAPI POSIX_API;
 
     /**
-     * Loads the fastest compatible provider into {@link #POSIX_API}.
-     * Not thread-safe while {@link #POSIX_API} is {@code null}.
-     * Providers are tried in the order {@code JNRPosixAPI},
-     * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}
-     * (see POSIX-FN-002).
+     * Loads the appropriate PosixAPI implementation based on the native platform.
+     * If the platform is Unix, it loads {@link JNRPosixAPI}, otherwise it loads {@link WinJNRPosixAPI}.
+     * If an error occurs during loading, it falls back to {@link NoOpPosixAPI}.
      */
     public static void loadPosixApi() {
         if (POSIX_API != null)
@@ -32,6 +29,8 @@ public class PosixAPIHolder {
             posixAPI = Platform.getNativePlatform().isUnix()
                     ? new JNRPosixAPI()
                     : new WinJNRPosixAPI();
+            // Eagerly probe the runtime so that missing native runtimes fall back to NoOp early
+            posixAPI.getpid();
         } catch (Throwable t) {
             // Fallback to NoOpPosixAPI if an error occurs
             posixAPI = new NoOpPosixAPI(t.toString());
@@ -40,7 +39,7 @@ public class PosixAPIHolder {
     }
 
     /**
-     * Switches {@link #POSIX_API} to the no-op provider.
+     * Sets the PosixAPI to a no-op implementation explicitly.
      */
     public static void useNoOpPosixApi() {
         POSIX_API = new NoOpPosixAPI("Explicitly disabled");
