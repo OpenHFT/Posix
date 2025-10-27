@@ -6,6 +6,7 @@ import net.openhft.posix.internal.UnsafeMemory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -264,9 +265,17 @@ public interface PosixAPI {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
         pb.redirectErrorStream(true);
         final Process process = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line = br.readLine();
-            return Long.parseUnsignedLong(line.split("\\s+")[0]);
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                process.getInputStream(), StandardCharsets.UTF_8))) {
+            final String line = br.readLine();
+            if (line == null) {
+                throw new IOException("du produced no output for " + filename);
+            }
+            final String[] tokens = line.split("\\s+");
+            if (tokens.length == 0) {
+                throw new IOException("du output malformed for " + filename + ": \"" + line + "\"");
+            }
+            return Long.parseUnsignedLong(tokens[0]);
         }
     }
 
@@ -321,9 +330,7 @@ public interface PosixAPI {
                 final int mask = 1 << (i & 31);
                 final int word = UNSAFE.getInt(wordAddr);
                 if ((word & mask) != 0) {
-                    if (set) {
-                        // nothing.
-                    } else {
+                    if (!set) {
                         start = i;
                         set = true;
                     }
