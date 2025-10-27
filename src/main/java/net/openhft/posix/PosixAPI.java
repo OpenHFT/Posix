@@ -1,5 +1,6 @@
 package net.openhft.posix;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import net.openhft.posix.internal.PosixAPIHolder;
 import net.openhft.posix.internal.UnsafeMemory;
 
@@ -261,6 +262,7 @@ public interface PosixAPI {
      * @return The disk usage in bytes.
      * @throws IOException If an I/O error occurs.
      */
+    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "POSIX-SEC-204: ProcessBuilder uses fixed argv without shell expansion")
     default long du(String filename) throws IOException {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
         pb.redirectErrorStream(true);
@@ -315,8 +317,7 @@ public interface PosixAPI {
      */
     default String sched_getaffinity_summary(int pid) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(Long.BYTES,
-                (int) ((((long) nprocs_conf + (Long.SIZE - 1)) / Long.SIZE) * Long.BYTES));
+        final int size = Math.max(Long.BYTES, requiredMaskBytes(nprocs_conf - 1));
         long ptr = malloc(size);
         boolean set = false;
         int start = 0;
@@ -420,7 +421,7 @@ public interface PosixAPI {
      */
     static int requiredMaskBytes(int highestCpuInclusive) {
         int cpus = Math.max(0, highestCpuInclusive) + 1;
-        long words = ((long) cpus + (Long.SIZE - 1)) / Long.SIZE;
+        long words = ((long) cpus + Long.SIZE - 1) / Long.SIZE;
         long bytes = Math.max(1L, words) * Long.BYTES;
         if (bytes > Integer.MAX_VALUE)
             throw new IllegalArgumentException("CPU mask exceeds supported size: " + bytes + " bytes");

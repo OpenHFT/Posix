@@ -5,6 +5,7 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import net.openhft.posix.*;
 import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.internal.core.Jvm;
@@ -24,13 +25,14 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
  * hard-coded numbers chosen for common architectures.  If the kernel does not
  * recognise a number the call gracefully falls back to the available wrapper.</p>
  */
+@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "POSIX-API-117: propagate errno via RuntimeException to honour existing interface")
 public final class JNRPosixAPI implements PosixAPI {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JNRPosixAPI.class);
 
     // JNR Runtime and Platform instances
-    static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
-    static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
+    static final Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
+    static final Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
     static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
 
@@ -261,6 +263,10 @@ public final class JNRPosixAPI implements PosixAPI {
                 throw new IOException("Failed to release lock");
             }
         }
+
+        void ensureAcquired() {
+            // intentional no-op; documents that the lock is held for the try-with-resource scope
+        }
     }
 
     @Override
@@ -293,6 +299,7 @@ public final class JNRPosixAPI implements PosixAPI {
         // NB: this use case uses cooperative locking to help close a small race window
         if(mode == 0) {
             try(FileLocker lock = new FileLocker(fd)) {
+                lock.ensureAcquired();
                 int ret = jnr.posix_fallocate(fd, offset, length);
                 if(ret == 0)
                     return ret;

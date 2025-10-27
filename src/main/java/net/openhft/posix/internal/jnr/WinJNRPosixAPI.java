@@ -1,6 +1,7 @@
 package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
+import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.PosixAPI;
 
@@ -25,7 +26,7 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 public final class WinJNRPosixAPI implements PosixAPI {
 
     // JNR Runtime and Platform instances
-    static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
+    static final Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
 
@@ -120,7 +121,7 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public int get_nprocs_conf() {
-        return Runtime.getRuntime().availableProcessors();
+        return java.lang.Runtime.getRuntime().availableProcessors();
     }
 
     @Override
@@ -141,8 +142,11 @@ public final class WinJNRPosixAPI implements PosixAPI {
     @Override
     public int gettimeofday(long timeval) {
         long now = System.currentTimeMillis();
-        UNSAFE.putLong(timeval, now / 1000);
-        UNSAFE.putLong(timeval + 8, (now % 1000) * 1000);
+        long seconds = now / 1000;
+        long remainderMillis = now % 1000;
+        long micros = remainderMillis * 1000;
+        UNSAFE.putLong(timeval, seconds);
+        UNSAFE.putLong(timeval + 8, micros);
         return 0;
     }
 
