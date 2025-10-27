@@ -7,6 +7,8 @@ import org.junit.Assume;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
+import net.openhft.posix.internal.ReflectionAccess;
+
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 import static org.junit.Assert.*;
 
@@ -40,9 +42,7 @@ public class JNAPosixAPITest {
 
     private static void injectStub(JNAPosixAPI api, JNAPosixInterface stub) throws Exception {
         Field field = JNAPosixAPI.class.getDeclaredField("jna");
-        if (!field.canAccess(api)) {
-            field.setAccessible(true);
-        }
+        ReflectionAccess.ensureAccessible(field, api);
         long offset = UNSAFE.objectFieldOffset(field);
         UNSAFE.putObject(api, offset, stub);
     }

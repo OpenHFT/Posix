@@ -76,9 +76,7 @@ public class PosixAPIHolderTest {
     private static Field singletonField() throws Exception {
         Class<?> holder = Class.forName("jnr.ffi.Platform$SingletonHolder");
         Field field = holder.getDeclaredField("PLATFORM");
-        if (!field.canAccess(null)) {
-            field.setAccessible(true);
-        }
+        ReflectionAccess.ensureAccessible(field, null);
         return field;
     }
 
