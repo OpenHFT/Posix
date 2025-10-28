@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests around {@link PosixAPIHolder} to ensure the documented provider order

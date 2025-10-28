@@ -1,11 +1,11 @@
 package net.openhft.posix.internal.jnr;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jnr.constants.platform.Errno;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import net.openhft.posix.*;
 import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.internal.core.Jvm;
@@ -143,8 +143,8 @@ public final class JNRPosixAPI implements PosixAPI {
     /**
      * Performs the mlock2 system call.
      *
-     * @param addr The address to lock.
-     * @param length The length of the memory to lock.
+     * @param addr        The address to lock.
+     * @param length      The length of the memory to lock.
      * @param lockOnFault Whether to lock on fault.
      * @return The result of the mlock2 system call.
      */
@@ -160,7 +160,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock(long addr, long length) {
-        if(Jvm.isAzul()) {
+        if (Jvm.isAzul()) {
             LOGGER.warn("mlock called but ignored for Azul");
             return true; // no-op on Azul, ignore
         }
@@ -175,7 +175,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
-        if(Jvm.isAzul()) {
+        if (Jvm.isAzul()) {
             LOGGER.warn("mlock2 called but ignored for Azul");
             return true; // no-op on Azul, ignore
         }
@@ -291,17 +291,17 @@ public final class JNRPosixAPI implements PosixAPI {
             if (ret == 0)
                 return ret;
         } catch (Throwable e) {
-            if(mode != 0)
+            if (mode != 0)
                 throw e;
         }
 
         // if both fallocate attempts fail, then revert to posix_ftruncate when mode = 0
         // NB: this use case uses cooperative locking to help close a small race window
-        if(mode == 0) {
-            try(FileLocker lock = new FileLocker(fd)) {
+        if (mode == 0) {
+            try (FileLocker lock = new FileLocker(fd)) {
                 lock.ensureAcquired();
                 int ret = jnr.posix_fallocate(fd, offset, length);
-                if(ret == 0)
+                if (ret == 0)
                     return ret;
             } catch (Throwable ignored) {
             }

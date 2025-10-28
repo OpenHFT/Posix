@@ -1,16 +1,15 @@
 package net.openhft.posix.internal.jna;
 
 import com.sun.jna.Pointer;
-import org.junit.Test;
+import net.openhft.posix.internal.ReflectionAccess;
 import org.junit.Assume;
+import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
-import net.openhft.posix.internal.ReflectionAccess;
-
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Smoke tests for the JNA-backed provider to ensure constructor wiring and the

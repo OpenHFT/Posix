@@ -118,7 +118,6 @@ Add JVM arg:
 ====
 
 [%collapsible]
-
 == Further reading
 
 * link:src/main/adoc/project-requirements.adoc[Functional requirements]

@@ -12,7 +12,9 @@ public final class OS {
      */
     public static final String OS_NAME = System.getProperty("os.name", "?");
 
-    /** Private constructor to prevent instantiation. */
+    /**
+     * Private constructor to prevent instantiation.
+     */
     private OS() {
     }
 

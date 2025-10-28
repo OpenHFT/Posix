@@ -3,7 +3,7 @@ package net.openhft.posix.internal.raw;
 import net.openhft.posix.MclFlag;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Ensures {@link RawPosixAPI} can be subclassed without extra wiring and that

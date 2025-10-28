@@ -7,10 +7,8 @@
 
 == Introduction
 
-_OpenHFT Posix_ is a low-level Java façade over selected POSIX / Linux
-system calls, aimed at deterministic, zero-GC latency paths in trading
-workloads.  It runs on Linux, macOS, Windows and in sandboxed CI by
-degrading to a *No-Op* implementation.
+_OpenHFT Posix_ is a low-level Java façade over selected POSIX / Linux system calls, aimed at deterministic, zero-GC latency paths in trading workloads.
+It runs on Linux, macOS, Windows and in sandboxed CI by degrading to a *No-Op* implementation.
 
 == POSIX-FN-Requirements
 

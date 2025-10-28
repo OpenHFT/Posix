@@ -1,38 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-  <!-- Temporary suppressions for lazy init / accessible field warnings. -->
-  <Match>
-    <Class name="net.openhft.posix.internal.PosixAPIHolder"/>
-    <Bug pattern="LI_LAZY_INIT_STATIC,MS_CANNOT_BE_FINAL,PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
-  </Match>
-  <Match>
-    <Class name="net.openhft.posix.internal.UnsafeMemory"/>
-    <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
-  </Match>
-  <Match>
-    <Class name="net.openhft.posix.internal.jnr.JNRPosixAPI$FileLocker"/>
-    <Bug pattern="CT_CONSTRUCTOR_THROW,EI_EXPOSE_REP2"/>
-  </Match>
-  <Match>
-    <Class name="net.openhft.posix.PosixAPI"/>
-    <Method name="du"/>
-    <Bug pattern="COMMAND_INJECTION"/>
-    <Or>
-      <Comment>POSIX-SEC-204: ProcessBuilder is invoked with fixed argv and never shells out; arguments are passed as execve tokens so there is no injection surface.</Comment>
-    </Or>
-  </Match>
-  <Match>
-    <Class name="net.openhft.posix.ProcMaps"/>
-    <Bug pattern="PATH_TRAVERSAL_IN"/>
-    <Or>
-      <Comment>POSIX-OPS-102: Reads the kernel-managed /proc/&lt;pid&gt;/maps file for diagnostics; caller supplies PID but resource remains confined to procfs.</Comment>
-    </Or>
-  </Match>
-  <Match>
-    <Class name="net.openhft.posix.internal.jnr.JNRPosixAPI"/>
-    <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
-    <Or>
-      <Comment>POSIX-API-117: Methods wrap errno reporting, throwing RuntimeException to preserve existing API contracts; change to checked exceptions would be breaking.</Comment>
-    </Or>
-  </Match>
+    <!-- Temporary suppressions for lazy init / accessible field warnings. -->
+    <Match>
+        <Class name="net.openhft.posix.internal.PosixAPIHolder"/>
+        <Bug pattern="LI_LAZY_INIT_STATIC,MS_CANNOT_BE_FINAL,PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    </Match>
+    <Match>
+        <Class name="net.openhft.posix.internal.UnsafeMemory"/>
+        <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
+    </Match>
+    <Match>
+        <Class name="net.openhft.posix.internal.jnr.JNRPosixAPI$FileLocker"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW,EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="net.openhft.posix.PosixAPI"/>
+        <Method name="du"/>
+        <Bug pattern="COMMAND_INJECTION"/>
+        <Or>
+            <Comment>POSIX-SEC-204: ProcessBuilder is invoked with fixed argv and never shells out; arguments are passed
+                as execve tokens so there is no injection surface.
+            </Comment>
+        </Or>
+    </Match>
+    <Match>
+        <Class name="net.openhft.posix.ProcMaps"/>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+        <Or>
+            <Comment>POSIX-OPS-102: Reads the kernel-managed /proc/&lt;pid&gt;/maps file for diagnostics; caller
+                supplies PID but resource remains confined to procfs.
+            </Comment>
+        </Or>
+    </Match>
+    <Match>
+        <Class name="net.openhft.posix.internal.jnr.JNRPosixAPI"/>
+        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+        <Or>
+            <Comment>POSIX-API-117: Methods wrap errno reporting, throwing RuntimeException to preserve existing API
+                contracts; change to checked exceptions would be breaking.
+            </Comment>
+        </Or>
+    </Match>
 </FindBugsFilter>

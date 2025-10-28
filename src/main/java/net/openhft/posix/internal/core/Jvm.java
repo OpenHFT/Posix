@@ -8,7 +8,9 @@ import net.openhft.posix.internal.UnsafeMemory;
  */
 public final class Jvm {
 
-    /** Private constructor to prevent instantiation. */
+    /**
+     * Private constructor to prevent instantiation.
+     */
     private Jvm() {
     }
 

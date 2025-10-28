@@ -5,10 +5,14 @@ package net.openhft.posix;
  * produced by the underlying native call.
  */
 public class PosixRuntimeException extends RuntimeException {
-    /** Used to maintain serialization compatibility. */
+    /**
+     * Used to maintain serialization compatibility.
+     */
     private static final long serialVersionUID = 0L;
 
-    /** POSIX errno captured from the failing call. */
+    /**
+     * POSIX errno captured from the failing call.
+     */
     private final int errno;
 
     /**

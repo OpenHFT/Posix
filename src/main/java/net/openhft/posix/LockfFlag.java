@@ -8,19 +8,29 @@ package net.openhft.posix;
  * @see <a href="https://man7.org/linux/man-pages/man3/lockf.3.html">lockf(3)</a>
  */
 public enum LockfFlag {
-    /** Release the specified section. */
+    /**
+     * Release the specified section.
+     */
     F_ULOCK(0),
 
-    /** Exclusive lock on the section. Blocks until available. */
+    /**
+     * Exclusive lock on the section. Blocks until available.
+     */
     F_LOCK(1),
 
-    /** Non-blocking exclusive lock. */
+    /**
+     * Non-blocking exclusive lock.
+     */
     F_TLOCK(2),
 
-    /** Test whether a lock is held by another process. */
+    /**
+     * Test whether a lock is held by another process.
+     */
     F_TEST(3);
 
-    /** Native constant value. */
+    /**
+     * Native constant value.
+     */
     final int value;
 
     /**

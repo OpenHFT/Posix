@@ -16,12 +16,15 @@ public interface JNRPosixInterface {
     long lseek(int fd, long offset, int whence);
 
     int lockf(int fd, int cmd, long len);
+
     int flock(int fd, int operation);
 
     int ftruncate(int fd, long offset);
 
     int fallocate(int fd, int mode, long offset, long length);
+
     int fallocate64(int fd, int mode, long offset, long length);
+
     int posix_fallocate(int fd, long offset, long length);
 
     int close(int fd);
@@ -57,6 +60,7 @@ public interface JNRPosixInterface {
     int clock_gettime(int clockId, long ptr);
 
     int mlock(long addr, long length);
+
     int mlock2(long addr, long length, int flags);
 
     int mlockall(int flags);

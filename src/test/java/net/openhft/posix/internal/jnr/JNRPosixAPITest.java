@@ -167,6 +167,7 @@ public class JNRPosixAPITest {
 
     /**
      * Applies the given int supplier N times over N threads, adding each result to a set
+     *
      * @return - the size of the set
      */
     int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {

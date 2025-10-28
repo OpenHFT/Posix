@@ -17,11 +17,11 @@
 | ALL-OPS-004 | Nine-Box Tag Taxonomy Adoption | 2025-05-26 | OPS
 |===
 
-
 == ALL-DOC-001 Language & Character-Set Policy
 
 *Context*::
-Chronicle teams span multiple regions. Mixed US/UK spelling and occasional UTF-8 artefacts caused build failures in binary wire-format tests and confused spell-checkers.
+Chronicle teams span multiple regions.
+Mixed US/UK spelling and occasional UTF-8 artefacts caused build failures in binary wire-format tests and confused spell-checkers.
 
 *Decision*::
 * Use **British English** spelling for prose/code except fixed US technical spellings (`synchronized`, `Serializable`).
@@ -38,7 +38,9 @@ Chronicle teams span multiple regions. Mixed US/UK spelling and occasional UTF-8
 == POSIX-FN-002 Provider Fallback Order
 
 *Context*::
-The Posix façade must run on Linux, macOS and Windows.  Performance varies between native libraries (JNR, JNA) and reflection.  Deterministic bootstrap order avoids surprises.
+The Posix façade must run on Linux, macOS and Windows.
+Performance varies between native libraries (JNR, JNA) and reflection.
+Deterministic bootstrap order avoids surprises.
 
 *Decision*::
 At first successful class-load we try providers in this strict order:
@@ -62,7 +64,8 @@ Override with `-Dchronicle.posix.provider`.
 == ALL-DOC-002 Real-Time Documentation Loop
 
 *Context*::
-Documentation drift led to mis-generated code from AI agents.  The team adopted a “doc-first or doc-alongside” workflow but lacked formal guidance.
+Documentation drift led to mis-generated code from AI agents.
+The team adopted a “doc-first or doc-alongside” workflow but lacked formal guidance.
 
 *Decision*::
 * Update AsciiDoc **in the same commit** as code/tests.
@@ -78,27 +81,22 @@ Quicker feedback, cleaner PR reviews, slightly longer dev cycle per change.
 Some environments (Graal native-image, security-restricted CI) cannot load native libs.
 
 *Decision*::
-`NoOpPosixAPI` compiles everywhere, returns **0** for safe no-ops, **-1** (or
-throws `PosixRuntimeException(errno=ENOSYS)`) where silent failure may lose data.
+`NoOpPosixAPI` compiles everywhere, returns **0** for safe no-ops, **-1** (or throws `PosixRuntimeException(errno=ENOSYS)`) where silent failure may lose data.
 
 == POSIX-NF-O-006 Affinity Mask Sizing Policy
 
 *Context*::
-Regression POSIX-2025-05 observed incorrect CPU pinning on hosts with more than
-thirty-two logical processors. Bit masks were truncated because offsets used
-byte indices rather than `int` words and mask buffers were only sized for a
-single `long`.
+Regression POSIX-2025-05 observed incorrect CPU pinning on hosts with more than thirty-two logical processors.
+Bit masks were truncated because offsets used byte indices rather than `int` words and mask buffers were only sized for a single `long`.
 
 *Decision*::
 * Introduce `CpuSetUtil` to normalise mask sizing (round up to whole
-  `Long.BYTES` blocks) and byte packing.
-* Apply the helper in `PosixJNAAffinity` and export the same contract to
-  embedding projects (Java Thread Affinity).
+`Long.BYTES` blocks) and byte packing.
+* Apply the helper in `PosixJNAAffinity` and export the same contract to embedding projects (Java Thread Affinity).
 * Add pure-Java tests that simulate > 64-core schedulers.
 
 *Alternatives*::
-*Hard-code buffer sizes per architecture* – rejected because it risks further
-drift when porting to new platforms.
+*Hard-code buffer sizes per architecture* – rejected because it risks further drift when porting to new platforms.
 
 *Consequences*::
 * Mask handling now covers arbitrary CPU counts permitted by the kernel.

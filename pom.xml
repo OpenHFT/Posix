@@ -7,7 +7,7 @@
         <groupId>net.openhft</groupId>
         <artifactId>java-parent-pom</artifactId>
         <version>1.27ea1</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <artifactId>posix</artifactId>
@@ -16,7 +16,7 @@
     <description>OpenHFT Java Posix APIs</description>
     <packaging>jar</packaging>
 
-  <properties>
+    <properties>
         <checkstyle.version>3.6.0</checkstyle.version>
         <puppycrawl.version>10.26.1</puppycrawl.version>
         <spotbugs.version>4.9.8.1</spotbugs.version>
@@ -24,9 +24,9 @@
         <maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <jacoco.line.coverage>0.80</jacoco.line.coverage>
-    <jacoco.branch.coverage>0.70</jacoco.branch.coverage>
-    <chronicle-quality-rules.version>1.23ea6</chronicle-quality-rules.version>
-  </properties>
+        <jacoco.branch.coverage>0.70</jacoco.branch.coverage>
+        <chronicle-quality-rules.version>1.23ea6</chronicle-quality-rules.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -201,8 +201,9 @@
                             <effort>Max</effort>
                             <threshold>Low</threshold>
                             <failOnError>true</failOnError>
-                      <excludeFilterFile>${project.basedir}/src/main/config/spotbugs-exclude.xml</excludeFilterFile>
-                      <plugins>
+                            <excludeFilterFile>${project.basedir}/src/main/config/spotbugs-exclude.xml
+                            </excludeFilterFile>
+                            <plugins>
                                 <plugin>
                                     <groupId>com.h3xstream.findsecbugs</groupId>
                                     <artifactId>findsecbugs-plugin</artifactId>

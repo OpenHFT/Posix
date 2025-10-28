@@ -8,16 +8,24 @@ package net.openhft.posix;
  * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
  */
 public enum MSyncFlag {
-    /** Sync memory asynchronously. */
+    /**
+     * Sync memory asynchronously.
+     */
     MS_ASYNC(1),
 
-    /** Invalidate caches. */
+    /**
+     * Invalidate caches.
+     */
     MS_INVALIDATE(2),
 
-    /** Synchronous memory sync. */
+    /**
+     * Synchronous memory sync.
+     */
     MS_SYNC(4);
 
-    /** Native constant value. */
+    /**
+     * Native constant value.
+     */
     private final int value;
 
     /**

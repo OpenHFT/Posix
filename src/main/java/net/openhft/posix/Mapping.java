@@ -11,6 +11,7 @@ import net.openhft.posix.internal.UnsafeMemory;
  * <p>
  * On a 32-bit VM the addresses are truncated.
  * Instances are thread-safe and immutable.
+ *
  * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
 public final class Mapping {
@@ -42,8 +43,8 @@ public final class Mapping {
      * Parses a mapping line from {@code /proc/[pid]/maps}.
      *
      * @param line textual line from the maps file
-     * @throws NumberFormatException        if address or inode fields are not
-     *                                      valid hex or decimal numbers
+     * @throws NumberFormatException          if address or inode fields are not
+     *                                        valid hex or decimal numbers
      * @throws ArrayIndexOutOfBoundsException if fields are missing
      */
     public Mapping(String line) {
@@ -60,42 +61,58 @@ public final class Mapping {
         toString = line;
     }
 
-    /** Start address of the mapping. */
+    /**
+     * Start address of the mapping.
+     */
     public long addr() {
         return addr;
     }
 
-    /** Length of the mapping. */
+    /**
+     * Length of the mapping.
+     */
     public long length() {
         return length;
     }
 
-    /** Offset into the file or VM object. */
+    /**
+     * Offset into the file or VM object.
+     */
     public long offset() {
         return offset;
     }
 
-    /** Inode number. */
+    /**
+     * Inode number.
+     */
     public long inode() {
         return inode;
     }
 
-    /** Permission string such as {@code r-xp}. */
+    /**
+     * Permission string such as {@code r-xp}.
+     */
     public String perms() {
         return perms;
     }
 
-    /** Device in {@code major:minor} form. */
+    /**
+     * Device in {@code major:minor} form.
+     */
     public String device() {
         return device;
     }
 
-    /** File path of the mapping if any. */
+    /**
+     * File path of the mapping if any.
+     */
     public String path() {
         return path;
     }
 
-    /** Original line from the maps file. */
+    /**
+     * Original line from the maps file.
+     */
     @Override
     public String toString() {
         return toString;

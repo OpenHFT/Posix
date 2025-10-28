@@ -9,14 +9,14 @@
  *     long ptr = posix.malloc(128);
  *     posix.free(ptr);
  * </pre>
- *
+ * <p>
  * File example:
  * <pre>
  *     PosixAPI posix = PosixAPI.posix();
  *     int fd = posix.open("/tmp/data", OpenFlag.O_CREAT, 0644);
  *     posix.close(fd);
  * </pre>
- *
+ * <p>
  * All helpers strive for zero heap allocation.
  */
 package net.openhft.posix;

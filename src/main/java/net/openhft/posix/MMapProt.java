@@ -8,28 +8,42 @@ package net.openhft.posix;
  * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapProt {
-    /** Allow read access. */
+    /**
+     * Allow read access.
+     */
     PROT_READ(1),
 
-    /** Allow write access. */
+    /**
+     * Allow write access.
+     */
     PROT_WRITE(2),
 
-    /** Allow both read and write access. */
+    /**
+     * Allow both read and write access.
+     */
     PROT_READ_WRITE(3),
 
-    /** Allow execute access. */
+    /**
+     * Allow execute access.
+     */
     PROT_EXEC(4),
 
-    /** Allow execute and read access. */
+    /**
+     * Allow execute and read access.
+     */
     PROT_EXEC_READ(5),
 
-    /** No access allowed. */
+    /**
+     * No access allowed.
+     */
     PROT_NONE(8);
 
-    /** Native constant value. */
+    /**
+     * Native constant value.
+     */
     final int value;
 
-   /**
+    /**
      * @param value native constant value
      */
     MMapProt(int value) {

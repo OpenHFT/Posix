@@ -8,13 +8,19 @@ package net.openhft.posix;
  * @see <a href="https://man7.org/linux/man-pages/man2/mmap.2.html">mmap(2)</a>
  */
 public enum MMapFlag {
-    /** Memory mapping to be shared with other processes. */
+    /**
+     * Memory mapping to be shared with other processes.
+     */
     SHARED(1),
 
-    /** Memory mapping to be private to the process. */
+    /**
+     * Memory mapping to be private to the process.
+     */
     PRIVATE(2);
 
-    /** Native constant value. */
+    /**
+     * Native constant value.
+     */
     private final int value;
 
     /**
