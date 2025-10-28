@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -54,8 +55,8 @@ public class WinJNRPosixAPITest {
         assertEquals(Runtime.getRuntime().availableProcessors(), api.get_nprocs_conf());
         assertEquals(api.get_nprocs_conf(), api.get_nprocs());
 
-        assertEquals(List.of("open", "lseek", "read", "write", "close", "pid", "strerror"), win.calls);
-        assertEquals(List.of("tid"), kernel.calls);
+        assertEquals(Arrays.asList("open", "lseek", "read", "write", "close", "pid", "strerror"), win.calls);
+        assertEquals(Arrays.asList("tid"), kernel.calls);
     }
 
     private static void setField(Object target, String fieldName, Object value) throws Exception {
