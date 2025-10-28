@@ -8,7 +8,7 @@ Peter Lawrey, 31/08/2021
 :source-highlighter: rouge
 
 [abstract]
-The _OpenHFT Posix_ module is a zero-GC, low-latency Java façade over a **portable subset of POSIX/Linux system calls**, with provider fall-back to JNR, JNA or raw/reflective variants.
+The _OpenHFT Posix_ module is a zero-GC, low-latency Java façade over a *portable subset of POSIX/Linux system calls*, with provider fall-back to JNR, JNA or raw/reflective variants.
 Chronicle components rely on it for deterministic file-IO, memory-mapping and CPU-affinity operations that the JDK does not expose.
 
 Audience: Internal, Stability: Stable
@@ -51,14 +51,14 @@ posix.munmap(addr, 4096);
 |===
 | Provider | Native layer | Typical when…
 
-| `JNRPosixAPI`      | JNR-FFI      | **Linux** & x86_64/ARM, fastest syscalls
-| `WinJNRPosixAPI`   | JNR-FFI      | **Windows** equivalents (subset)
+| `JNRPosixAPI`      | JNR-FFI      | *Linux* & x86_64/ARM, fastest syscalls
+| `WinJNRPosixAPI`   | JNR-FFI      | *Windows* equivalents (subset)
 | `JNAPosixAPI`      | JNA          | exotic/legacy platforms
 | `RawPosixAPI`      | Reflection   | JVM ≥ 21 with `--add-opens`
 | `NoOpPosixAPI`     | —            | CI sandboxes / Graal native-image
 |===
 
-`-Dchronicle.posix.provider=` *provider-name* overrides the auto-choice.
+`-Dchronicle.posix.provider=` _provider-name_ overrides the auto-choice.
 
 == Supported system calls
 
@@ -75,7 +75,7 @@ posix.munmap(addr, 4096);
 | addr / 0        | `MAP_FAILED` → -1 sentinel
 
 | CPU-affinity
-| `sched_*affinity*`, helpers `sched_setaffinity_as` …
+| `sched__affinity_`, helpers `sched_setaffinity_as` …
 | 0               | portable bit-mask helpers
 
 | Timing
@@ -93,7 +93,7 @@ mvn -q verify
 
 Environment variables:
 
-* `POSIX_TEST_ALLOW_NATIVE` – set to *false* in CI to force `NoOpPosixAPI`.
+* `POSIX_TEST_ALLOW_NATIVE` – set to _false_ in CI to force `NoOpPosixAPI`.
 * `POSIX_SYSLOG_LEVEL` – adjust logging noise during native provider load.
 
 == Troubleshooting
