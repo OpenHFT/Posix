@@ -25,7 +25,7 @@ Mixed US/UK spelling and occasional UTF-8 artefacts caused build failures in bin
 
 _Decision_::
 * Use *British English* spelling for prose/code except fixed US technical spellings (`synchronized`, `Serializable`).
-* Restrict all source and documentation files to *ASCII-7* code-points (0-127).
+* Restrict all source and documentation files to *ISO-8859-1* code-points (0-255).
 
 _Alternatives considered_::
 _Allow UTF-8 universally_ – rejected: breaks zero-copy buffers that rely on MSB=0.
