@@ -1,6 +1,4 @@
 package net.openhft.posix.internal.jnr;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jnr.constants.platform.Errno;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
@@ -25,7 +23,6 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
  * hard-coded numbers chosen for common architectures.  If the kernel does not
  * recognise a number the call gracefully falls back to the available wrapper.</p>
  */
-@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "POSIX-API-117: propagate errno via RuntimeException to honour existing interface")
 public final class JNRPosixAPI implements PosixAPI {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JNRPosixAPI.class);

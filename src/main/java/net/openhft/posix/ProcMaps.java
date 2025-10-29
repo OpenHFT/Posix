@@ -1,7 +1,5 @@
 package net.openhft.posix;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,7 +21,6 @@ import static java.util.stream.Collectors.toList;
  *
  * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
-@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "POSIX-OPS-102: reads kernel-managed /proc/<pid>/maps entries only")
 public final class ProcMaps {
     // A list to hold the memory mappings
     private final List<Mapping> mappingList = new ArrayList<>();

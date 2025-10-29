@@ -1,6 +1,4 @@
 package net.openhft.posix;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import net.openhft.posix.internal.PosixAPIHolder;
 import net.openhft.posix.internal.UnsafeMemory;
 
@@ -262,7 +260,6 @@ public interface PosixAPI {
      * @return The disk usage in bytes.
      * @throws IOException If an I/O error occurs.
      */
-    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "POSIX-SEC-204: ProcessBuilder uses fixed argv without shell expansion")
     default long du(String filename) throws IOException {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
         pb.redirectErrorStream(true);
