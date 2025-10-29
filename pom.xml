@@ -45,12 +45,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-annotations</artifactId>
-            <version>4.8.6</version>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>net.java.dev.jna</groupId>
