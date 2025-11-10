@@ -1,3 +1,7 @@
+//
+// Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0
+//
+
 package net.openhft.posix.internal.jnr;
 
 import net.openhft.posix.MMapFlag;
@@ -33,8 +37,8 @@ import static org.junit.Assert.assertEquals;
  */
 
 public class MSyncFileBenchmarkMain {
-    static final String PATH = System.getProperty("path", "/tmp");
-    static final int LENGTH = Integer.getInteger("length", 64 << 10);
+    private static final String PATH = System.getProperty("path", "/tmp");
+    private static final int LENGTH = Integer.getInteger("length", 64 << 10);
     private static final Unsafe UNSAFE;
 
     static {

@@ -1,3 +1,7 @@
+//
+// Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0
+//
+
 /*
  * Copyright 2016-2020 chronicle.software
  *
@@ -41,11 +45,11 @@ public class Histogram {
         this(42, 8);
     }
 
-    public Histogram(int powersOf2, int fractionBits) {
+    private Histogram(int powersOf2, int fractionBits) {
         this(powersOf2, fractionBits, 1.0);
     }
 
-    public Histogram(int powersOf2, int fractionBits, double minValue) {
+    private Histogram(int powersOf2, int fractionBits, double minValue) {
         this.powersOf2 = powersOf2;
         this.fractionBits = fractionBits;
         sampleCount = new int[powersOf2 << fractionBits];
@@ -59,7 +63,7 @@ public class Histogram {
         return new Histogram(22 /* 4 seconds */, 3 /* 2 decimal places */, 1000.0 /* nano-seconds */);
     }
 
-    public static double[] percentilesFor(long count) {
+    private static double[] percentilesFor(long count) {
         List<Double> values = new ArrayList<>();
         values.add(50 / 100.0);
         values.add(90 / 100.0);
@@ -177,7 +181,7 @@ public class Histogram {
         return percentile(1.0);
     }
 
-    public double percentile(double fraction) {
+    private double percentile(double fraction) {
         if (fraction <= 0) {
             for (int i = 0; i < sampleCount.length; i++) {
                 if (sampleCount[i] <= 0)
@@ -211,7 +215,7 @@ public class Histogram {
         return getPercentiles(percentilesFor(totalCount));
     }
 
-    public double[] getPercentiles(double[] percentileFor) {
+    private double[] getPercentiles(double[] percentileFor) {
         return DoubleStream.of(percentileFor).map(this::percentile).toArray();
     }
 
@@ -219,7 +223,7 @@ public class Histogram {
         return toMicrosFormat(t -> t / 1e3);
     }
 
-    public String toMicrosFormat(DoubleFunction<Double> toMicros) {
+    private String toMicrosFormat(DoubleFunction<Double> toMicros) {
         if (totalCount < 1_000_000)
             return "50/90 99/99.9 99.99 - worst was " +
                     p(toMicros.apply(percentile(0.5))) + " / " +
@@ -254,7 +258,7 @@ public class Histogram {
         return toLongMicrosFormat(t -> t / 1e3);
     }
 
-    public String toLongMicrosFormat(DoubleFunction<Double> toMicros) {
+    private String toLongMicrosFormat(DoubleFunction<Double> toMicros) {
         if (totalCount < 1_000_000)
             return "50/90 97/99 99.7/99.9 99.97/99.99 - worst was " +
                     first4nines(toMicros) + " - " +

@@ -1,3 +1,7 @@
+//
+// Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0
+//
+
 /**
  * Portable subset of POSIX operations.
  * {@link net.openhft.posix.internal.PosixAPIHolder} selects the best provider
