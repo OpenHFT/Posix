@@ -36,8 +36,8 @@ import static org.junit.Assert.assertEquals;
  */
 
 public class MSyncFileBenchmarkMain {
-    static final String PATH = System.getProperty("path", "/tmp");
-    static final int LENGTH = Integer.getInteger("length", 64 << 10);
+    private static final String PATH = System.getProperty("path", "/tmp");
+    private static final int LENGTH = Integer.getInteger("length", 64 << 10);
     private static final Unsafe UNSAFE;
 
     static {

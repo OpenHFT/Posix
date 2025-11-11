@@ -51,9 +51,9 @@ read to write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9
 
  */
 public class BenchmarkMain {
-    static final Unsafe UNSAFE;
+    private static final Unsafe UNSAFE;
     private static final long THROUGHPUT = Long.getLong("throughput", 1_400_000);
-    static final int[] blackhole = new int[512 / 4];
+    private static final int[] blackhole = new int[512 / 4];
 
     static {
         try {

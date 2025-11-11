@@ -23,7 +23,7 @@ import static org.junit.Assume.assumeTrue;
 
 public class JNRPosixAPITest {
 
-    static final PosixAPI jnr = isUnix() ? new JNRPosixAPI() : new WinJNRPosixAPI();
+    private static final PosixAPI jnr = isUnix() ? new JNRPosixAPI() : new WinJNRPosixAPI();
 
     @Test
     public void open() throws IOException {
@@ -172,7 +172,7 @@ public class JNRPosixAPITest {
      * Applies the given int supplier N times over N threads, adding each result to a set
      * @return - the size of the set
      */
-    int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {
+    private int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {
         final ConcurrentSkipListSet<Integer> items = new ConcurrentSkipListSet<>();
         final ArrayList<Thread> threads = new ArrayList<>();
 
