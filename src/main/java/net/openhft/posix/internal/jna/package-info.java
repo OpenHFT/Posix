@@ -1,7 +1,6 @@
 /*
  * Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0
  */
-
 /**
  * Supplies the JNA based provider of {@link net.openhft.posix.PosixAPI}.
  * <p>
