@@ -63,7 +63,7 @@ public final class JNRPosixAPI implements PosixAPI {
     }
 
     // Cached number of processors
-    private int get_nprocs_conf = 0;
+    private int cachedNprocsConf = 0;
 
     /**
      * Determines the appropriate method for getting the thread ID (gettid).
@@ -149,7 +149,7 @@ public final class JNRPosixAPI implements PosixAPI {
      * @param lockOnFault Whether to lock on fault.
      * @return The result of the mlock2 system call.
      */
-    private int mlock2_(long addr, long length, boolean lockOnFault) {
+    private int mlock2Native(long addr, long length, boolean lockOnFault) {
         // Degrade to mlock for all platforms if lockOnFault not set
         // or always for macOS which doesn't support mlock2 at all
         if (!lockOnFault || OS.isMacOSX())
@@ -180,7 +180,7 @@ public final class JNRPosixAPI implements PosixAPI {
             LOGGER.warn("mlock2 called but ignored for Azul");
             return true; // no-op on Azul, ignore
         }
-        int err = mlock2_(addr, length, lockOnFault);
+        int err = mlock2Native(addr, length, lockOnFault);
         if (err == 0)
             return true;
         if (err == Errno.ENOMEM.intValue())
@@ -213,7 +213,7 @@ public final class JNRPosixAPI implements PosixAPI {
             for (Mapping mapping : map.list()) {
                 if (mapping.perms().equals("---p"))
                     continue;
-                int ret = mlock2_(mapping.addr(), mapping.length(), onFault);
+                int ret = mlock2Native(mapping.addr(), mapping.length(), onFault);
                 if (!MOCKALL_DUMP)
                     continue;
                 final long kb = mapping.length() / 1024;
@@ -279,6 +279,7 @@ public final class JNRPosixAPI implements PosixAPI {
                 if (ret == 0)
                     return ret;
             } catch (Throwable ignored) {
+                // fall back to standard fallocate when the 64-bit variant is missing
             }
         }
 
@@ -300,6 +301,7 @@ public final class JNRPosixAPI implements PosixAPI {
                 if(ret == 0)
                     return ret;
             } catch (Throwable ignored) {
+                // unable to fall back to posix_fallocate, continue to error path
             }
         }
 
@@ -344,9 +346,9 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int get_nprocs_conf() {
-        if (get_nprocs_conf == 0)
-            get_nprocs_conf = jnr.get_nprocs_conf();
-        return get_nprocs_conf;
+        if (cachedNprocsConf == 0)
+            cachedNprocsConf = jnr.get_nprocs_conf();
+        return cachedNprocsConf;
     }
 
     @Override

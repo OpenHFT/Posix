@@ -60,22 +60,22 @@ public interface PosixAPI {
     /**
      * Preallocate space for a file.
      *
-     * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
      * @param fd     descriptor
      * @param mode   allocation mode
      * @param offset start offset
      * @param length bytes to allocate
      * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
      */
     int fallocate(int fd, int mode, long offset, long length);
 
     /**
      * Truncate a file to the given length.
      *
-     * @see <a href="https://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate(2)</a>
      * @param fd     descriptor
      * @param offset new length
      * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate(2)</a>
      */
     int ftruncate(int fd, long offset);
 
@@ -214,13 +214,16 @@ public interface PosixAPI {
 
     /**
      * Lock all current and future memory mappings. The default implementation
-     * is a no-op. Calls typically fail when the process exceeds its
-     * {@code RLIMIT_MEMLOCK} or the platform does not implement the
-     * operation.
+     * is a no-op for implementations that do not support {@code mlockall}.
+     * Calls typically fail when the process exceeds its {@code RLIMIT_MEMLOCK}
+     * or the platform does not implement the operation.
      *
      * @param flags bit mask of options
      */
     default void mlockall(int flags) {
+        // default implementation intentionally does nothing
+        @SuppressWarnings("unused")
+        final int ignored = flags;
     }
 
     /**
@@ -372,19 +375,15 @@ public interface PosixAPI {
             for (int i = 0; i < nprocs_conf; i++) {
                 final int b = UNSAFE.getInt(ptr + i / 32);
                 if (((b >> i) & 1) != 0) {
-                    if (set) {
-                        // nothing.
-                    } else {
+                    if (!set) {
                         start = i;
                         set = true;
                     }
-                } else {
-                    if (set) {
-                        if (sb.length() > 0)
-                            sb.append(',');
-                        sb.append(start).append('-').append(i - 1);
-                        set = false;
-                    }
+                } else if (set) {
+                    if (sb.length() > 0)
+                        sb.append(',');
+                    sb.append(start).append('-').append(i - 1);
+                    set = false;
                 }
             }
             if (set) {
