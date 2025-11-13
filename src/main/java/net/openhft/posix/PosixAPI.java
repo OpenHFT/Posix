@@ -331,6 +331,8 @@ public interface PosixAPI {
      */
     int gettimeofday(long timeval);
 
+    //CHECKSTYLE:OFF MethodName
+
     /**
      * Native wrapper for {@code sched_setaffinity(2)}.
      *
@@ -535,6 +537,8 @@ public interface PosixAPI {
      * @return processor count
      */
     int get_nprocs_conf();
+
+    //CHECKSTYLE:ON MethodName
 
     /**
      * Process ID of the calling process.

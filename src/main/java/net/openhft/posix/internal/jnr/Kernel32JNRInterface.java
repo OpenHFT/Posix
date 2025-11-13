@@ -7,6 +7,7 @@ package net.openhft.posix.internal.jnr;
  * Native bindings to functions from Kernel32.dll.
  */
 public interface Kernel32JNRInterface {
+    //CHECKSTYLE:OFF MethodName
 
     /**
      * Retrieves the identifier of the calling thread.
@@ -23,4 +24,6 @@ public interface Kernel32JNRInterface {
      * @see <a href="https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getnativesysteminfo">GetNativeSystemInfo</a>
      */
     void GetNativeSystemInfo(long addr);
+
+    //CHECKSTYLE:ON MethodName
 }

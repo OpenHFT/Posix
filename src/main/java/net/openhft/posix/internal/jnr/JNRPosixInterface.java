@@ -10,6 +10,7 @@ import jnr.ffi.Pointer;
  *
  */
 public interface JNRPosixInterface {
+    //CHECKSTYLE:OFF MethodName
     int open(CharSequence path, int flags, int perm);
 
     long read(int fd, long dst, long len);
@@ -67,4 +68,5 @@ public interface JNRPosixInterface {
     int syscall(int number);
 
     int syscall(int number, long arg1, long arg2, int arg3);
+    //CHECKSTYLE:ON MethodName
 }

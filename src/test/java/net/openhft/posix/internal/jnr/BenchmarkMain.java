@@ -203,7 +203,7 @@ public class BenchmarkMain {
                         System.out.println("i: " + i + ", took " + time / 1000 + " us.");
                     next += interval;
                     while (System.nanoTime() < next) {
-                        // spin until the next interval
+                        Thread.yield();
                     }
                 }
             }
