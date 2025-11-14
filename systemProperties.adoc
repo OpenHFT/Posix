@@ -1,0 +1,29 @@
+= Posix System Properties
+:toc:
+:lang: en-GB
+:source-highlighter: rouge
+
+== System Properties
+
+The Posix module reads a small number of system properties to adjust behaviour on different platforms.
+Set each property via `-Dkey=value` when starting the JVM.
+
+.System properties
+[cols="2a,1,3a,2a",options="header"]
+|===
+| Property Key
+| Default Value
+| Description
+| Java Variable Name (Type)
+
+| `jvm.isarm`
+| not set
+| Overrides automatic detection of ARM architectures. When set to `true`, the Posix support code treats the current JVM as running on an ARM platform even if `os.arch` does not indicate this.
+| Used in `net.openhft.posix.internal.core.Jvm.isArm()` (`boolean`)
+
+| `mlockall.dump`
+| `false`
+| When `true`, enables additional diagnostic logging around `mlockall` usage in the JNR based Posix implementation, useful when debugging native memory locking issues.
+| `MOCKALL_DUMP` (`boolean`)
+|===
+
