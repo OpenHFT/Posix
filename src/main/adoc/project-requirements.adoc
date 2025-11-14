@@ -3,10 +3,11 @@
 :toc:
 :encoding: ISO-8859-1
 :lang: en-GB
+:source-highlighter: rouge
 
 == Introduction
 
-_OpenHFT Posix_ is a low-level Java façade over selected POSIX / Linux
+_OpenHFT Posix_ is a low-level Java facade over selected POSIX / Linux
 system calls, aimed at deterministic, zero-GC latency paths in trading
 workloads.  It runs on Linux, macOS, Windows and in sandboxed CI by
 degrading to a *No-Op* implementation.
@@ -18,12 +19,12 @@ degrading to a *No-Op* implementation.
 | *ID* | *Title* | *Description*
 
 | POSIX-FN-001
-| Java façade
+| Java facade
 | Provide a public `net.openhft.posix.PosixAPI` interface grouping
 File-I/O, Memory-mapping, Memory-advice, Process/Thread info,
 CPU-affinity and Timing primitives.
 
-| POSIX-FN-002
+| link:decision-log.adoc#POSIX-FN-002[POSIX-FN-002]
 | Automatic provider selection
 | At static initialisation choose the fastest compatible provider in
 order: `JNRPosixAPI`, `WinJNRPosixAPI`, `JNAPosixAPI`, `NoOpPosixAPI`;
@@ -67,7 +68,7 @@ available; default overload uses `CLOCK_REALTIME`.
 | Expose raw `malloc`/`free` wrappers (Unsafe on Windows, libc elsewhere)
 for off-heap buffers usable by JNI/direct I-O.
 
-| POSIX-FN-010
+| link:decision-log.adoc#POSIX-NF-O-003[POSIX-FN-010]
 | No-Op provider contract
 | `NoOpPosixAPI` compiles everywhere, returning `0` for safe no-ops,
 `-1` or throwing for operations where silent failure risks data loss.
@@ -83,5 +84,3 @@ pure functions, safe in static initialisers.
 | Provide `BenchmarkMain` executable exercising mmap/lock/sync loops and
 printing a latency histogram; exit 0 when all checks pass.
 |===
-
-

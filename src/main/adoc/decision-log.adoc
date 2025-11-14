@@ -1,21 +1,26 @@
-= Decision Log – OpenHFT Posix
+= Decision Log - OpenHFT Posix
 :doctype: book
 :toc:
 :icons: font
 :lang: en-GB
 :encoding: ISO-8859-1
+:source-highlighter: rouge
 
 [cols="1,4,2,2",options="header"]
 |===
 | ID | Title (scope) | Date | Tags
-| ALL-DOC-001 | Language & Character-Set Policy | 2025-05-26 | DOC, UX
-| POSIX-FN-002 | Provider Fallback Order | 2025-05-26 | FN, NF-P
-| ALL-DOC-002 | Real-Time Documentation Loop | 2025-05-26 | DOC, OPS
-| POSIX-NF-O-003 | No-Op Provider Contract | 2025-05-26 | NF-O, TEST
-| ALL-OPS-004 | Nine-Box Tag Taxonomy Adoption | 2025-05-26 | OPS
+| link:#ALL-DOC-001[ALL-DOC-001] | Language and Character-Set Policy | 2025-05-26 | DOC, UX
+| link:#POSIX-FN-002[POSIX-FN-002] | Provider Fallback Order | 2025-05-26 | FN, NF-P
+| link:#ALL-DOC-002[ALL-DOC-002] | Real-Time Documentation Loop | 2025-05-26 | DOC, OPS
+| link:#POSIX-NF-O-003[POSIX-NF-O-003] | No-Op Provider Contract | 2025-05-26 | NF-O, TEST
+| link:#ALL-OPS-004[ALL-OPS-004] | Nine-Box Tag Taxonomy Adoption | 2025-05-26 | OPS
 |===
 
 
+This log records Posix-specific decisions and a small set of global `ALL-*` decisions that are particularly relevant to the module.
+Identifiers follow the `<Scope>-<Tag>-NNN` pattern, where `Scope` is `POSIX` for module decisions and `ALL` for company-wide items.
+
+[[ALL-DOC-001]]
 == ALL-DOC-001 Language & Character-Set Policy
 
 *Context*::
@@ -26,17 +31,20 @@ Chronicle teams span multiple regions. Mixed US/UK spelling and occasional UTF-8
 * Restrict all source and documentation files to **ASCII-7** code-points (0-127).
 
 *Alternatives considered*::
-*Allow UTF-8 universally* – rejected: breaks zero-copy buffers that rely on MSB=0.
-*Allow US spellings* – rejected: inconsistent with London HQ style guide.
+*Allow UTF-8 universally* - rejected: breaks zero-copy buffers that rely on MSB=0.
+*Allow US spellings* - rejected: inconsistent with London HQ style guide.
 
 *Consequences*::
 * Tooling: CI linter added (`scripts/check-ascii.sh`).
 * On-boarding: documented in `AGENTS.md`; IDE templates updated.
+Links::
+* link:../../AGENTS.md[Canonical AGENTS guidance]
 
+[[POSIX-FN-002]]
 == POSIX-FN-002 Provider Fallback Order
 
 *Context*::
-The Posix façade must run on Linux, macOS and Windows.  Performance varies between native libraries (JNR, JNA) and reflection.  Deterministic bootstrap order avoids surprises.
+The Posix facade must run on Linux, macOS and Windows.  Performance varies between native libraries (JNR, JNA) and reflection.  Deterministic bootstrap order avoids surprises.
 
 *Decision*::
 At first successful class-load we try providers in this strict order:
@@ -50,17 +58,20 @@ At first successful class-load we try providers in this strict order:
 Override with `-Dchronicle.posix.provider`.
 
 *Alternatives*::
-*ServiceLoader scan* – too slow; non-deterministic.
-*OS-hard-coded providers* – would fork the code-base per platform.
+*ServiceLoader scan* - too slow; non-deterministic.
+*OS-hard-coded providers* - would fork the code-base per platform.
 
 *Consequences*::
 * Single-point selection in `PosixAPIHolder`.
 * Unit tests must set `POSIX_TEST_ALLOW_NATIVE=false` to force No-Op in CI.
+Links::
+* link:project-requirements.adoc#posix-fn-002[POSIX-FN-002 Automatic provider selection]
 
+[[ALL-DOC-002]]
 == ALL-DOC-002 Real-Time Documentation Loop
 
 *Context*::
-Documentation drift led to mis-generated code from AI agents.  The team adopted a “doc-first or doc-alongside” workflow but lacked formal guidance.
+Documentation drift led to mis-generated code from AI agents.  The team adopted a "doc-first or doc-alongside" workflow but lacked formal guidance.
 
 *Decision*::
 * Update AsciiDoc **in the same commit** as code/tests.
@@ -69,7 +80,10 @@ Documentation drift led to mis-generated code from AI agents.  The team adopted 
 
 *Consequences*::
 Quicker feedback, cleaner PR reviews, slightly longer dev cycle per change.
+Links::
+* link:../../canonical-AGENTS.md[Company-wide documentation workflow]
 
+[[POSIX-NF-O-003]]
 == POSIX-NF-O-003 No-Op Provider Contract
 
 *Context*::
@@ -82,3 +96,24 @@ throws `PosixRuntimeException(errno=ENOSYS)`) where silent failure may lose data
 
 *Consequences*::
 Baseline behaviour predictable; integration tests must stub filesystem side-effects.
+Links::
+* link:project-requirements.adoc#posix-fn-010[POSIX-FN-010 No-Op provider contract]
+
+[[ALL-OPS-004]]
+== ALL-OPS-004 Nine-Box Tag Taxonomy Adoption
+
+*Context*::
+Requirement and decision identifiers historically varied across Chronicle projects, which made cross-repository traceability and compliance checks harder to automate.
+
+*Decision*::
+Adopt the Nine-Box taxonomy for requirement and decision identifiers, using `<Scope>-<Tag>-NNN` with tags such as `FN`, `NF-P`, `NF-S`, `NF-O`, `DOC`, `OPS`, `TEST`, `UX`, and `RISK`.
+
+*Alternatives considered*::
+*Per-project schemes* - simpler locally but do not scale across shared tooling or audits.
+*Free-form tags* - easy to start with but impossible to validate consistently.
+
+*Consequences*::
+* Build and documentation tooling must recognise the Nine-Box tags.
+* New requirements and decisions in Posix and other modules must allocate unique identifiers within their scope.
+Links::
+* link:../../canonical-AGENTS.md[Nine-Box taxonomy reference]
