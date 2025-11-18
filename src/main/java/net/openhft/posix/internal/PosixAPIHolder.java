@@ -16,7 +16,7 @@ import net.openhft.posix.internal.noop.NoOpPosixAPI;
  */
 public class PosixAPIHolder {
     /** Selected provider instance once initialised. */
-    public static PosixAPI POSIX_API;
+    public static volatile PosixAPI POSIX_API;
 
     /**
      * Loads the fastest compatible provider into {@link #POSIX_API}.
@@ -25,7 +25,7 @@ public class PosixAPIHolder {
      * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}
      * (see POSIX-FN-002).
      */
-    public static void loadPosixApi() {
+    public static synchronized void loadPosixApi() {
         if (POSIX_API != null)
             return;
 
@@ -45,7 +45,7 @@ public class PosixAPIHolder {
     /**
      * Switches {@link #POSIX_API} to the no-op provider.
      */
-    public static void useNoOpPosixApi() {
+    public static synchronized void useNoOpPosixApi() {
         POSIX_API = new NoOpPosixAPI("Explicitly disabled");
     }
 }

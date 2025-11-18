@@ -1,0 +1,184 @@
+= OpenHFT Posix Architecture Overview
+:toc:
+:sectnums:
+:lang: en-GB
+:source-highlighter: rouge
+
+== Purpose and Scope
+
+This document explains how the OpenHFT Posix module wraps a small, carefully chosen subset of POSIX system calls into a Java 8 compatible API.
+It complements the requirements catalogue in link:../adoc/project-requirements.adoc[project-requirements.adoc] and the design rationale captured in link:../adoc/decision-log.adoc[decision-log.adoc].
+
+The focus is on:
+
+* what Posix does for Chronicle libraries;
+* how providers are discovered and selected;
+* how native failures are surfaced and contained;
+* how the API is expected to behave from a performance and operability point of view.
+
+Out of scope are:
+
+* full POSIX semantics (refer to the Linux man-pages for exact behaviour);
+* exhaustive parameter tables (see `PosixAPI` Javadoc for signatures and flags);
+* build and release mechanics (covered by the root `ARCHITECTURE_RESEARCH_GUIDE.adoc`).
+
+== Document Map
+
+The Posix documentation set is organised as follows:
+
+* link:project-requirements.adoc[project-requirements.adoc] – complete POSIX functional catalogue (POSIX-FN-001 and friends).
+* link:decision-log.adoc[decision-log.adoc] – Posix specific decisions plus a small set of global `ALL-*` decisions that strongly affect this module.
+* link:security-review.adoc[security-review.adoc] – threat model and mitigations around native calls, off-heap memory and error propagation.
+* `README.adoc` – high level overview and simple usage examples.
+* `systemProperties.adoc` (none today) – would list Posix specific configuration switches when introduced.
+
+This architecture overview should be read first when deciding whether to adopt Posix in a new component or when reasoning about its failure modes.
+
+== Role in the Chronicle Stack
+
+=== Layer and Consumers
+
+Posix is a Layer 0 *foundation* module.
+It provides a stable Java facade for a narrow set of POSIX operations that higher layers depend on for performance sensitive I/O and memory management.
+
+Typical consumers include:
+
+* Chronicle-Bytes and Chronicle-Queue for file mapping, pre-allocation and `msync` control.
+* Chronicle-Threads and Chronicle-Affinity for CPU affinity helpers.
+* Platform and Services modules that need consistent error handling around native syscalls.
+
+The module is intentionally small, so that it can be tested and audited more easily than many independent JNI/JNA calls scattered across the code base.
+
+=== Design Goals
+
+The main design goals, as captured in POSIX-FN-* requirements, are:
+
+* **Stable Java 8 facade** – the public API in `net.openhft.posix.PosixAPI` is a narrow Java 8 interface that callers can depend on without pulling in newer JDK APIs.
+* **Deterministic error handling** – native failures are surfaced consistently via `PosixRuntimeException` and `lastError()` / `strerror(int)` (POSIX-FN-003).
+* **Zero-GC hot paths** – the primary mapping, advice and locking operations avoid heap allocation on success paths (POSIX-FN-001, POSIX-FN-005, POSIX-FN-009).
+* **Predictable fallback behaviour** – explicit No-Op provider semantics for restricted environments (POSIX-FN-010 / POSIX-NF-O-003).
+* **Cross-platform strategy** – provider selection supports Linux, macOS and Windows, but non-supported operations fail fast rather than silently degrading.
+
+== Core Abstractions and Packages
+
+=== Public API
+
+The public surface for most users is the `PosixAPI` interface in the `net.openhft.posix` package.
+The key abstractions are:
+
+* `PosixAPI` – main facade exposing file-descriptor, mapping, advisory and timing primitives (POSIX-FN-001, POSIX-FN-004, POSIX-FN-005, POSIX-FN-006, POSIX-FN-008, POSIX-FN-009).
+* `PosixRuntimeException` – unchecked exception representing a POSIX failure plus the associated `errno` value (POSIX-FN-003).
+* Flag enums – `OpenFlag`, `WhenceFlag`, `LockfFlag`, `MMapProt`, `MMapFlag`, `MAdviseFlag`, `MSyncFlag`, `MclFlag`, `ClockId` encode the numeric constants expected by the underlying C calls (POSIX-FN-004 to POSIX-FN-008).
+* Value types – `Mapping` and `ProcMaps` capture information derived from `/proc` and mapping calls without going back into native code.
+
+Everything in this package is designed to remain stable across major releases.
+New features are added by augmenting enums and adding new methods, rather than changing existing signatures.
+
+=== Internal Infrastructure
+
+The implementation side lives under `net.openhft.posix.internal` (not shown in the public API package listing).
+Important internal pieces are:
+
+* `PosixAPIHolder` – owns the active `PosixAPI` instance and implements the provider selection strategy (POSIX-FN-002, POSIX-NF-O-003).
+* Provider implementations – for example `JNRPosixAPI`, `WinJNRPosixAPI`, `JNAPosixAPI`, `RawPosixAPI`, `NoOpPosixAPI`.
+  Each wraps a specific binding technology and platform.
+* `UnsafeMemory` – very small helper around the JVM `Unsafe` to provide raw address access and size checks (relied on by `Mapping`).
+
+Types in `internal` are not part of the public contract.
+They are allowed to evolve more quickly as long as they continue to honour the functional and non-functional requirements at the facade.
+
+== Provider Selection and Lifecycle
+
+=== Bootstrapping and Fallback Order
+
+Provider selection is governed by decision link:../adoc/decision-log.adoc#POSIX-FN-002[POSIX-FN-002].
+At first access to `PosixAPI.posix()` the holder tries to load providers in a deterministic order:
+
+. `JNRPosixAPI`
+. `WinJNRPosixAPI`
+. `JNAPosixAPI`
+. `RawPosixAPI`
+. `NoOpPosixAPI`
+
+The first implementation that loads successfully and passes its own smoke tests becomes the active `PosixAPI` for the lifetime of the JVM.
+A system property (for example `chronicle.posix.provider`) can override this choice in test harnesses and debugging scenarios.
+
+This approach trades a tiny amount of start up work for a stable, predictable runtime configuration.
+It also allows the team to introduce new providers (for example a future Panama backed implementation) without changing the public entry point.
+
+=== No-Op Provider Contract
+
+`NoOpPosixAPI` is the last entry in the chain and is used when native libraries cannot be loaded or are explicitly disabled.
+Its behaviour is defined by link:../adoc/decision-log.adoc#POSIX-NF-O-003[POSIX-NF-O-003]:
+
+* Operations that are safe to ignore return `0` and do not log.
+* Operations where silent failure could corrupt data return `-1` or throw `PosixRuntimeException` with `errno` set to `ENOSYS`.
+* `lastError()` always returns `0`, so callers must not use it as a feature detection mechanism.
+
+The No-Op provider ensures that unit tests, sandboxed CI and documentation examples can still run without native libraries, while making it clear when a real deployment is misconfigured.
+
+== Error Handling and Contracts
+
+Every native operation is expected to follow a simple pattern:
+
+* On success: return a valid value as described by the underlying man-page (for example a positive file descriptor, a non-negative offset, or `0`).
+* On failure: return `-1` or another sentinel as appropriate, set a thread-local `errno` and expose that contextual information via `lastError()` and `strerror(int)`, or throw `PosixRuntimeException`.
+
+Callers should treat `PosixRuntimeException` as the primary indication of failure in higher level Chronicle modules.
+When a method directly returns an error code instead of throwing, it is usually because the call mirrors a low-level C function whose behaviour is checked immediately by the caller.
+
+The high-level contracts that follow from POSIX-FN-003 are:
+
+* No method silently swallows errors from the operating system.
+* Error codes are reported using the same numeric values as the underlying libc.
+* There is a monotonic mapping from a given failure scenario to a single kind of Java failure (exception type and errno), simplifying retries and logging.
+
+== Interaction with Other Modules
+
+Posix is not a stand-alone product.
+It is a support module used in several higher-level components:
+
+* **Chronicle-Bytes / Chronicle-Queue** – use `mmap`, `msync`, `mlock` and `fallocate` primitives to manage off-heap storage with explicit durability semantics.
+* **Chronicle-Threads / Affinity** – rely on CPU affinity helpers to pin threads and interpret core mappings consistently across platforms.
+* **Chronicle-Services / Platform modules** – may use Posix for diagnostics, file-descriptor introspection and timing.
+
+For these modules, the most important properties are:
+
+* predictable cost of calls in the hot path;
+* clear failure modes when native libraries are absent;
+* consistent semantics across Linux distributions and supported Unix variants.
+
+== Performance Characteristics
+
+=== Hot Path Expectations
+
+Posix itself does not contain tight loops; it is called from latency-critical paths in other modules.
+The following conventions apply:
+
+* The primary methods in `PosixAPI` (mapping, advice, sync and affinity) aim to perform no heap allocation on success paths.
+* Flag enums are designed so that conversions between Java enums and native bit masks are direct and avoid look-up maps.
+* Provider selection is performed once; thereafter, calls are simple virtual method invocations.
+
+The actual syscall costs dominate, so the main architectural concern is avoiding hidden allocation or synchronisation.
+The functional requirements (POSIX-FN-001, POSIX-FN-005, POSIX-FN-007, POSIX-FN-009) and decisions in the log are used to keep this in check.
+
+=== No-Op Behaviour and Benchmarks
+
+When running under `NoOpPosixAPI` the module still incurs a small overhead for method dispatch and error handling.
+Benchmarks should treat No-Op mode as a diagnostic tool, not as a realistic performance configuration.
+
+Benchmark harnesses (for example those built with JLBH) can use Posix in two modes:
+
+* real native providers to exercise kernel behaviour and scheduling;
+* No-Op provider to approximate the marginal cost of the Java facade itself.
+
+== Testing Strategy (Summary)
+
+The detailed test strategy is maintained at repository level, but for Posix the key points are:
+
+* **Unit tests** use the No-Op provider and small stubs to exercise error handling, argument validation and provider selection logic in isolation.
+* **Native integration tests** run only on environments where the appropriate libc and native libraries are available; they are guarded by environment variables and system properties.
+* **Cross-platform smoke tests** confirm that `PosixAPI.posix()` returns a usable instance and that failure paths behave as documented on each supported operating system.
+* **Static analysis** via Checkstyle and SpotBugs (wired through the shared `quality` profile) are used to keep the codebase within Chronicle’s safe coding patterns.
+
+These layers give reasonable confidence that high-level Chronicle modules can rely on Posix without being directly coupled to native details.

@@ -8,7 +8,9 @@ import net.openhft.posix.internal.UnsafeMemory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -221,7 +223,8 @@ public interface PosixAPI {
      * @param flags bit mask of options
      */
     default void mlockall(int flags) {
-        // default implementation intentionally does nothing
+        // default implementation intentionally does nothing for unsupported providers
+        // parameter acknowledged to avoid unused-parameter warnings
         @SuppressWarnings("unused")
         final int ignored = flags;
     }
@@ -316,8 +319,13 @@ public interface PosixAPI {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
         pb.redirectErrorStream(true);
         final Process process = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        try (InputStream inputStream = process.getInputStream();
+             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(inputStreamReader)) {
             String line = br.readLine();
+            if (line == null) {
+                throw new IOException("du produced no output for " + filename);
+            }
             return Long.parseUnsignedLong(line.split("\\s+")[0]);
         }
     }
