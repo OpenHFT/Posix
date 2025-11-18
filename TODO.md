@@ -2,8 +2,8 @@
 
 **📋 Part of:** [Chronicle Architecture Documentation](../ARCH_TODO.md)
 **Module Layer:** Layer 0 (Foundation)
-**Priority:** 🟡 P2
-**Last Updated:** 2025-11-16
+**Priority:** 🟢 P3
+**Last Updated:** 2025-11-18
 
 ## Purpose
 
@@ -232,13 +232,16 @@ This TODO file tracks work specific to Posix that feeds into the master [ARCH_TO
 
 **Reference:** [../QUALITY_PLAYBOOK.md](../QUALITY_PLAYBOOK.md)
 
-- [ ] Run Checkstyle scan and document violations
-- [ ] Run SpotBugs scan and document issues
+- [x] Run Checkstyle scan and document violations
+  - A Java 21 `mvn clean verify -DskipTests` run for Posix (see `verify-posix-clean-verify-skipTests-java21.log`) invokes Checkstyle and reports `You have 0 Checkstyle violations.` for this module.
+- [x] Run SpotBugs scan and document issues
+  - Earlier Java 21 quality runs (`verify-posix-clean-verify-skipTests-java21.log`) reported 18 SpotBugs findings across core and test/benchmark code (default encodings, lazy static initialisation, dead stores and ignored `File` results). These have since been fixed in code and fresh Java 21 `mvn clean verify` runs for Posix (see `verify-posix-clean-verify-java21-tests-5.log` and `verify-posix-java21-spotbugs-after-fixes.log`) now complete with `BugInstance size is 0`.
 - [ ] Identify any code review follow-ups from CODE_REVIEW_STATUS.md
+  - Posix has code-review guidance in the global documentation, but no dedicated section yet in `CODE_REVIEW_STATUS.md`; with the SpotBugs backlog cleared, any remaining review items should be recorded there in a future pass.
 
 ## Notes
 
-[Add any module-specific notes, blockers, or context here]
+- 2025-11-18: Posix is Checkstyle- and SpotBugs-clean on Java 21 (`verify-posix-clean-verify-skipTests-java21.log`, `verify-posix-clean-verify-java21-tests-5.log`, `verify-posix-java21-spotbugs-after-fixes.log`). Remaining TODO items in this file relate to documentation and compliance and are being treated as longer-running work tracked as deferred in `TODO_STATUS.md`.
 
 ## Completion Checklist
 
