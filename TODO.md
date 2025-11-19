@@ -18,12 +18,17 @@ This TODO file tracks work specific to Posix that feeds into the master [ARCH_TO
 ## Module Information for Architecture Overview
 
 ### Basic Information
-- [ ] **Module Name:** Posix
-- [ ] **Maven Artifact ID:** posix
-- [ ] **Primary Purpose:** [1-2 sentence description]
-- [ ] **Layer in Chronicle Stack:** Layer 0 (Foundation)
-- [ ] **Dependencies (Chronicle modules):** [List key Chronicle dependencies]
-- [ ] **Key Classes/Interfaces:** [List 3-5 most important public APIs]
+- [x] **Module Name:** Posix
+- [x] **Maven Artifact ID:** posix
+- [x] **Primary Purpose:** Provide a zero-allocation, low-latency Java facade over a portable subset of POSIX and Linux system calls for file I/O, memory mapping and CPU-affinity helpers.
+- [x] **Layer in Chronicle Stack:** Layer 0 (Foundation; POSIX integration and native system-call facade)
+- [x] **Dependencies (Chronicle modules):** No direct runtime Chronicle library dependencies; uses shared `java-parent-pom` and `chronicle-quality-rules` for build and quality configuration
+- [x] **Key Classes/Interfaces:** `PosixAPI`, `PosixRuntimeException`, `Mapping`, `ProcMaps`, `ClockId`
+
+### ISO Alignment and Trust Zone
+
+- [x] **Trust zone identified (Edge/Core/Foundation):** Posix is a *Foundation (Zone C)* module providing low-level POSIX integration used by Chronicle-Core and other libraries for native capabilities.
+- [x] **Shared standards reviewed:** Review the shared architectural and security standards in `Chronicle-Quality-Rules/src/main/docs` and make sure Posix docs clearly state its scope, risks and expected use by higher-level modules.
 
 ### Architecture Information for ARCH_TODO.md Stage 3
 
