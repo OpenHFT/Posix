@@ -297,6 +297,7 @@ public final class JNRPosixAPI implements PosixAPI {
         // NB: this use case uses cooperative locking to help close a small race window
         if(mode == 0) {
             try(FileLocker lock = new FileLocker(fd)) {
+                assert lock != null;
                 int ret = jnr.posix_fallocate(fd, offset, length);
                 if(ret == 0)
                     return ret;
