@@ -3,8 +3,6 @@
  */
 package net.openhft.posix.internal.jnr;
 
-//import net.openhft.affinity.AffinityLock;
-
 import net.openhft.posix.*;
 import net.openhft.posix.util.Histogram;
 import sun.misc.Unsafe;
