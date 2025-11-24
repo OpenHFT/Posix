@@ -1,5 +1,11 @@
 # Guidance for AI agents, bots, and humans contributing to Chronicle Software's OpenHFT projects.
 
+- Follow repository `AGENTS.md` for base rules; this file adds Posix module specifics. Durable docs live in `src/main/docs/` with the landing page at `README.adoc`.
+- Module purpose: expose POSIX-style utilities for Java, including native integrations.
+- Build commands: full build `mvn -q clean verify`; module-only without tests `mvn -pl Posix -am -DskipTests install`.
+- Quality gates: keep Checkstyle/SpotBugs clean; avoid unsafe native usage; ensure platform-specific behaviour is clearly guarded and documented.
+- Documentation: maintain Nine-Box IDs in `src/main/docs/project-requirements.adoc` and link decisions/tests accordingly; British English, ASCII/ISO-8859-1, `:source-highlighter: rouge`.
+
 LLM-based agents can accelerate development only if they respect our house rules. This file tells you:
 
 * how to run and verify the build;

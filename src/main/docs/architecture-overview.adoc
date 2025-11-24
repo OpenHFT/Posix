@@ -7,7 +7,7 @@
 == Purpose and Scope
 
 This document explains how the OpenHFT Posix module wraps a small, carefully chosen subset of POSIX system calls into a Java 8 compatible API.
-It complements the requirements catalogue in link:../adoc/project-requirements.adoc[project-requirements.adoc] and the design rationale captured in link:../adoc/decision-log.adoc[decision-log.adoc].
+It complements the requirements catalogue in link:../docs/project-requirements.adoc[project-requirements.adoc] and the design rationale captured in link:../docs/decision-log.adoc[decision-log.adoc].
 
 The focus is on:
 
@@ -91,7 +91,7 @@ They are allowed to evolve more quickly as long as they continue to honour the f
 
 === Bootstrapping and Fallback Order
 
-Provider selection is governed by decision link:../adoc/decision-log.adoc#POSIX-FN-002[POSIX-FN-002].
+Provider selection is governed by decision link:../docs/decision-log.adoc#POSIX-FN-002[POSIX-FN-002].
 At first access to `PosixAPI.posix()` the holder tries to load providers in a deterministic order:
 
 . `JNRPosixAPI`
@@ -109,7 +109,7 @@ It also allows the team to introduce new providers (for example a future Panama 
 === No-Op Provider Contract
 
 `NoOpPosixAPI` is the last entry in the chain and is used when native libraries cannot be loaded or are explicitly disabled.
-Its behaviour is defined by link:../adoc/decision-log.adoc#POSIX-NF-O-003[POSIX-NF-O-003]:
+Its behaviour is defined by link:../docs/decision-log.adoc#POSIX-NF-O-003[POSIX-NF-O-003]:
 
 * Operations that are safe to ignore return `0` and do not log.
 * Operations where silent failure could corrupt data return `-1` or throw `PosixRuntimeException` with `errno` set to `ENOSYS`.

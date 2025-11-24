@@ -1,7 +1,6 @@
 = Functional Requirements - OpenHFT Posix
-:doctype: book
 :toc:
-:encoding: ISO-8859-1
+:sectnums:
 :lang: en-GB
 :source-highlighter: rouge
 

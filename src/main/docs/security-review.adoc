@@ -123,4 +123,3 @@ Future research (tracked in root guides such as `ARCHITECTURE_RESEARCH_GUIDE.ado
 * evaluating alternative binding technologies (for example Project Panama) for performance and safety;
 * broadening test coverage across different kernels and libc versions;
 * adding more explicit bounds checking in places where assumptions about address ranges are currently implicit.
-

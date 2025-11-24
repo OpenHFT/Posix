@@ -39,7 +39,6 @@ public enum ClockId {
     CLOCK_REALTIME_ALARM(8),
 
     /** Boot-time clock used for alarms. */
-
     CLOCK_BOOTTIME_ALARM(9),
 
     /** SGI cycle counter. */

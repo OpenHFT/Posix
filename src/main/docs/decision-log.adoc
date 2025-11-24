@@ -1,9 +1,7 @@
 = Decision Log - OpenHFT Posix
-:doctype: book
 :toc:
-:icons: font
+:sectnums:
 :lang: en-GB
-:encoding: ISO-8859-1
 :source-highlighter: rouge
 
 [cols="1,4,2,2",options="header"]
@@ -15,7 +13,6 @@
 | link:#POSIX-NF-O-003[POSIX-NF-O-003] | No-Op Provider Contract | 2025-05-26 | NF-O, TEST
 | link:#ALL-OPS-004[ALL-OPS-004] | Nine-Box Tag Taxonomy Adoption | 2025-05-26 | OPS
 |===
-
 
 This log records Posix-specific decisions and a small set of global `ALL-*` decisions that are particularly relevant to the module.
 Identifiers follow the `<Scope>-<Tag>-NNN` pattern, where `Scope` is `POSIX` for module decisions and `ALL` for company-wide items.
