@@ -41,12 +41,6 @@ public class ProcMapsTest {
             return;
         }
 
-        try {
-            ProcMaps.forPID(unlikelyPid);
-            fail("Expected IOException for missing /proc entry");
-        } catch (IOException expected) {
-            // expected
-        }
+        assertThrows(IOException.class, () -> ProcMaps.forPID(unlikelyPid));
     }
 }
-

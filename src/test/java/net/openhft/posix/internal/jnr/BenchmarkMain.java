@@ -147,7 +147,7 @@ public class BenchmarkMain {
                 if (i % (2 << 20) == 0 && i % 100000 == 0) {
                     System.out.println("read to write time: " + readToWrite.toLongMicrosFormat());
                 }
-                for (int len; (len = UNSAFE.getIntVolatile(null, raddr + i)) == 0; ) {
+                while (UNSAFE.getIntVolatile(null, raddr + i) == 0) {
                     if (Thread.currentThread().isInterrupted())
                         throw new AssertionError("length: " + i);
                 }

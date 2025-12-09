@@ -145,7 +145,7 @@ public final class WinJNRPosixAPI implements PosixAPI {
     public int gettimeofday(long timeval) {
         long now = System.currentTimeMillis();
         UNSAFE.putLong(timeval, now / 1000);
-        UNSAFE.putLong(timeval + 8, (now % 1000) * 1000);
+        UNSAFE.putLong(timeval + 8, now % 1000 * 1000);
         return 0;
     }
 

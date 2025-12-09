@@ -8,7 +8,11 @@ import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
-import net.openhft.posix.*;
+import net.openhft.posix.PosixAPI;
+import net.openhft.posix.MclFlag;
+import net.openhft.posix.Mapping;
+import net.openhft.posix.ProcMaps;
+import net.openhft.posix.PosixRuntimeException;
 import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.internal.core.Jvm;
 import net.openhft.posix.internal.core.OS;
@@ -32,8 +36,8 @@ public final class JNRPosixAPI implements PosixAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(JNRPosixAPI.class);
 
     // JNR Runtime and Platform instances
-    static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
-    static final jnr.ffi.Platform NATIVE_PLATFORM = Platform.getNativePlatform();
+    static final Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
+    static final Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
     static final Pointer NULL = Pointer.wrap(RUNTIME, 0);
 
