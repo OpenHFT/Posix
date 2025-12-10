@@ -66,6 +66,8 @@ public final class ProcMaps {
 
     /**
      * Immutable list of mappings captured at construction.
+     *
+     * @return unmodifiable view of mappings
      */
     public List<Mapping> list() {
         return unmodifiableList(mappingList);

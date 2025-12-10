@@ -48,6 +48,8 @@ public class PosixRuntimeException extends RuntimeException {
     }
 
     /**
+     * Returns the POSIX errno captured with this exception.
+     *
      * @return the errno associated with this exception
      */
     public int errno() {

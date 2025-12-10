@@ -64,37 +64,59 @@ public final class Mapping {
         toString = line;
     }
 
-    /** Start address of the mapping. */
+    /**
+     * Start address of the mapping.
+     *
+     * @return base address
+     */
     public long addr() {
         return addr;
     }
 
-    /** Length of the mapping. */
+    /** Length of the mapping.
+     *
+     * @return mapping length in bytes
+     */
     public long length() {
         return length;
     }
 
-    /** Offset into the file or VM object. */
+    /** Offset into the file or VM object.
+     *
+     * @return offset from the start of the mapped file/object
+     */
     public long offset() {
         return offset;
     }
 
-    /** Inode number. */
+    /** Inode number.
+     *
+     * @return inode associated with the mapping
+     */
     public long inode() {
         return inode;
     }
 
-    /** Permission string such as {@code r-xp}. */
+    /** Permission string such as {@code r-xp}.
+     *
+     * @return permission flags
+     */
     public String perms() {
         return perms;
     }
 
-    /** Device in {@code major:minor} form. */
+    /** Device in {@code major:minor} form.
+     *
+     * @return device identifier
+     */
     public String device() {
         return device;
     }
 
-    /** File path of the mapping if any. */
+    /** File path of the mapping if any.
+     *
+     * @return mapped file path or empty string
+     */
     public String path() {
         return path;
     }
