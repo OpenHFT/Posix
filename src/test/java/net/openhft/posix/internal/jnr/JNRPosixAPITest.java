@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import static net.openhft.posix.internal.core.OS.isMacOSX;
@@ -102,29 +103,15 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlock() throws IOException {
-        assumeTrue(new File("/proc/self").exists());
-        final Path file = Files.createTempFile("mmap", ".test");
-        final String filename = file.toAbsolutePath().toString();
-        final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
-        final long length = 1L << 16;
-        int err = jnr.ftruncate(fd, length);
-        assertEquals(0, err);
-
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
-        assertNotEquals(-1, addr);
-
-        jnr.mlock(addr, length);
-
-        int err1 = jnr.munmap(addr, length);
-        assertEquals(0, err1);
-        int err2 = jnr.close(fd);
-        assertEquals(0, err2);
-        assertTrue(file.toFile().exists());
-        file.toFile().delete();
+        runMlockTest(jnr::mlock);
     }
 
     @Test
     public void mlock2() throws IOException {
+        runMlockTest((addr, length) -> jnr.mlock2(addr, length, true));
+    }
+
+    private void runMlockTest(BiConsumer<Long, Long> lockFunction) throws IOException {
         assumeTrue(new File("/proc/self").exists());
         final Path file = Files.createTempFile("mmap", ".test");
         final String filename = file.toAbsolutePath().toString();
@@ -136,7 +123,7 @@ public class JNRPosixAPITest {
         long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
         assertNotEquals(-1, addr);
 
-        jnr.mlock2(addr, length, true);
+        lockFunction.accept(addr, length);
 
         int err1 = jnr.munmap(addr, length);
         assertEquals(0, err1);
