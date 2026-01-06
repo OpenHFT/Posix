@@ -4,16 +4,16 @@
 package net.openhft.posix.internal.jnr;
 
 import net.openhft.posix.*;
+import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.util.Histogram;
 import sun.misc.Unsafe;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /*
      380 MB/s -> 31 delays of 100+ us.
@@ -49,19 +49,9 @@ read to write time: 50/90 97/99 99.7/99.9 99.97/99.99 99.997/99.999 99.9997/99.9
 
  */
 public class BenchmarkMain {
-    private static final Unsafe UNSAFE;
+    private static final Unsafe UNSAFE = UnsafeMemory.UNSAFE;
     private static final long THROUGHPUT = Long.getLong("throughput", 1_400_000);
     private static final int[] blackhole = new int[512 / 4];
-
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            UNSAFE = (Unsafe) theUnsafe.get(null);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         final JNRPosixAPI jnr = new JNRPosixAPI();
@@ -72,28 +62,28 @@ public class BenchmarkMain {
         final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
         final long length = 1L << 30;
         int err = jnr.ftruncate(fd, length);
-        assertEquals(0, err);
+        assertEquals(0, err, "ftruncate should succeed");
 
-        assertEquals(0, jnr.du(filename));
+        assertEquals(0L, jnr.du(filename), "du should report 0 for empty file");
 
         long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
-        assertNotEquals(-1, addr);
+        assertNotEquals(-1L, addr, "mmap should succeed");
 
         int err4 = jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL);
-        assertEquals(0, err4);
+        assertEquals(0, err4, "madvise sequential should succeed");
         int err5 = jnr.madvise(addr, length, MAdviseFlag.MADV_HUGEPAGE);
-        assertEquals(0, err5);
+        assertEquals(0, err5, "madvise hugepage should succeed");
 
         ProcMaps procMaps = ProcMaps.forSelf();
         final List<Mapping> list = procMaps.findAll(m -> m.path().contains(filename));
-        assertEquals(1, list.size());
+        assertEquals(1, list.size(), "Expected one mapping for the mmap file");
         final Mapping mapping = list.get(0);
         System.out.println(mapping);
-        assertEquals(addr, mapping.addr());
-        assertEquals(length, mapping.length());
-        assertEquals(0L, mapping.offset());
+        assertEquals(addr, mapping.addr(), "mapping addr should match mmap return");
+        assertEquals(length, mapping.length(), "mapping length should match requested length");
+        assertEquals(0L, mapping.offset(), "mapping offset should be 0");
 
-        assertEquals(0, jnr.du(filename));
+        assertEquals(0L, jnr.du(filename), "du should still report 0 before writing");
 
         AtomicLong upto = new AtomicLong();
         Thread msync = new Thread(() -> {
@@ -107,7 +97,7 @@ public class BenchmarkMain {
                     if (next0 != next) {
                         // allocate a huge page in advance.
                         int err3 = jnr.fallocate(fd, 0, next0, 1L << 21);
-                        assertEquals(0, err3);
+                        assertEquals(0, err3, "fallocate should succeed");
                         next = next0;
                         busy = true;
                     }
@@ -214,10 +204,10 @@ public class BenchmarkMain {
         reader.interrupt();
         reader.join();
         int err1 = jnr.munmap(addr, length);
-        assertEquals(0, err1);
+        assertEquals(0, err1, "munmap should succeed");
         int err2 = jnr.close(fd);
-        assertEquals(0, err2);
-        assertTrue(file.exists());
+        assertEquals(0, err2, "close should succeed");
+        assertTrue(file.exists(), "mmap file should exist");
         file.delete();
     }
 }

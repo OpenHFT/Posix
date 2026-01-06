@@ -3,44 +3,42 @@
  */
 package net.openhft.posix;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class ProcMapsTest {
 
     @Test
     public void forSelfReadsCurrentProcessMappingsWhenProcAvailable() throws IOException {
         // Skip on platforms without /proc
-        Assume.assumeTrue(Files.exists(Paths.get("/proc/self/maps")));
+        assumeTrue(Files.exists(Paths.get("/proc/self/maps")), "/proc/self/maps must exist");
 
         ProcMaps maps = ProcMaps.forSelf();
         List<Mapping> list = maps.list();
 
-        assertNotNull(list);
-        assertFalse("Expected at least one mapping", list.isEmpty());
+        assertNotNull(list, "list() should not return null");
+        assertFalse(list.isEmpty(), "expected at least one mapping");
 
         Mapping first = list.get(0);
         Mapping viaFindFirst = maps.findFirst(m -> true);
-        assertEquals(first.toString(), viaFindFirst.toString());
+        assertEquals(first.toString(), viaFindFirst.toString(), "findFirst(true) should return the first mapping");
     }
 
     @Test
     public void forPidFailsForNonExistentProcessWhenProcAvailable() {
-        Assume.assumeTrue(Files.exists(Paths.get("/proc")));
+        assumeTrue(Files.exists(Paths.get("/proc")), "/proc must exist");
 
         int unlikelyPid = 999999;
-        if (Files.exists(Paths.get("/proc/" + unlikelyPid))) {
-            // If this pid happens to exist on the build agent, skip the check
-            return;
-        }
+        assumeFalse(Files.exists(Paths.get("/proc/" + unlikelyPid)), "unexpected pid exists: " + unlikelyPid);
 
-        assertThrows(IOException.class, () -> ProcMaps.forPID(unlikelyPid));
+        assertThrows(IOException.class, () -> ProcMaps.forPID(unlikelyPid), "forPID should throw for a non-existent pid");
     }
 }

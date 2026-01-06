@@ -5,9 +5,9 @@ package net.openhft.posix;
 
 import net.openhft.posix.internal.PosixAPIHolder;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PosixAPIHolderTest {
 
@@ -15,17 +15,17 @@ public class PosixAPIHolderTest {
     public void loadPosixApiInitialisesProviderOnce() {
         PosixAPIHolder.loadPosixApi();
         PosixAPI first = PosixAPIHolder.POSIX_API;
-        assertNotNull(first);
+        assertNotNull(first, "POSIX_API should be initialised");
 
         PosixAPIHolder.loadPosixApi();
         PosixAPI second = PosixAPIHolder.POSIX_API;
-        assertSame(first, second);
+        assertSame(first, second, "loadPosixApi should be idempotent");
     }
 
     @Test
     public void useNoOpPosixApiSwitchesToNoOp() {
         PosixAPIHolder.useNoOpPosixApi();
-        assertTrue(PosixAPIHolder.POSIX_API instanceof NoOpPosixAPI);
+        assertInstanceOf(NoOpPosixAPI.class, PosixAPIHolder.POSIX_API, "useNoOpPosixApi should set a NoOp provider");
     }
 
     @Test
@@ -39,10 +39,10 @@ public class PosixAPIHolderTest {
         t2.join();
 
         PosixAPI api = PosixAPIHolder.POSIX_API;
-        assertNotNull(api);
+        assertNotNull(api, "POSIX_API should be set after concurrent initialisation");
 
         // Basic sanity: calling posix() should not throw
         PosixAPI facade = PosixAPI.posix();
-        assertNotNull(facade);
+        assertNotNull(facade, "posix() should return a facade instance");
     }
 }

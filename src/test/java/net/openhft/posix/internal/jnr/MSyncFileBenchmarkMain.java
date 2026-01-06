@@ -7,14 +7,14 @@ import net.openhft.posix.MMapFlag;
 import net.openhft.posix.MMapProt;
 import net.openhft.posix.MSyncFlag;
 import net.openhft.posix.OpenFlag;
+import net.openhft.posix.internal.UnsafeMemory;
 import net.openhft.posix.util.Histogram;
 import sun.misc.Unsafe;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /*
  on a Ryzen 5950X, Ubuntu 21.10
@@ -37,17 +37,7 @@ import static org.junit.Assert.assertEquals;
 public class MSyncFileBenchmarkMain {
     private static final String PATH = System.getProperty("path", "/tmp");
     private static final int LENGTH = Integer.getInteger("length", 64 << 10);
-    private static final Unsafe UNSAFE;
-
-    static {
-        try {
-            Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-            theUnsafe.setAccessible(true);
-            UNSAFE = (Unsafe) theUnsafe.get(null);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
+    private static final Unsafe UNSAFE = UnsafeMemory.UNSAFE;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         for (String path : PATH.split(";")) {
@@ -59,7 +49,7 @@ public class MSyncFileBenchmarkMain {
             final JNRPosixAPI jnr = new JNRPosixAPI();
             final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
             int err = jnr.ftruncate(fd, LENGTH);
-            assertEquals(0, err);
+            assertEquals(0, err, "ftruncate should succeed");
             long addr = jnr.mmap(0, LENGTH, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
             Histogram syncTime = new Histogram();
             int warmup = 1;
@@ -81,7 +71,7 @@ public class MSyncFileBenchmarkMain {
             }
             System.out.println("path: " + path + ", sync: " + syncTime.toLongMicrosFormat());
             int err2 = jnr.close(fd);
-            assertEquals(0, err2);
+            assertEquals(0, err2, "close should succeed");
         }
     }
 }

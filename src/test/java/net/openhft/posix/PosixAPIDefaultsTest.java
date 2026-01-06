@@ -3,9 +3,9 @@
  */
 package net.openhft.posix;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PosixAPIDefaultsTest {
 
@@ -14,10 +14,10 @@ public class PosixAPIDefaultsTest {
         RecordingPosix stub = new RecordingPosix();
         final long result = stub.lseek(7, 123L, WhenceFlag.SEEK_CUR);
 
-        assertEquals(7, stub.lastLseekFd);
-        assertEquals(123L, stub.lastLseekOffset);
-        assertEquals(WhenceFlag.SEEK_CUR.value(), stub.lastLseekWhence);
-        assertEquals(RecordingPosix.LSEEK_RESULT, result);
+        assertEquals(7, stub.lastLseekFd, "fd forwarded to int overload");
+        assertEquals(123L, stub.lastLseekOffset, "offset forwarded to int overload");
+        assertEquals(WhenceFlag.SEEK_CUR.value(), stub.lastLseekWhence, "whence forwarded to int overload");
+        assertEquals(RecordingPosix.LSEEK_RESULT, result, "return value forwarded from int overload");
     }
 
     @Test
@@ -25,19 +25,19 @@ public class PosixAPIDefaultsTest {
         RecordingPosix stub = new RecordingPosix();
         final long addr = stub.mmap(0L, 4096L, MMapProt.PROT_READ, MMapFlag.SHARED, 5, 0L);
 
-        assertEquals(0L, stub.lastMmapAddr);
-        assertEquals(4096L, stub.lastMmapLength);
-        assertEquals(MMapProt.PROT_READ.value(), stub.lastMmapProt);
-        assertEquals(MMapFlag.SHARED.value(), stub.lastMmapFlags);
-        assertEquals(5, stub.lastMmapFd);
-        assertEquals(0L, stub.lastMmapOffset);
-        assertEquals(RecordingPosix.MMAP_RESULT, addr);
+        assertEquals(0L, stub.lastMmapAddr, "addr forwarded to int overload");
+        assertEquals(4096L, stub.lastMmapLength, "length forwarded to int overload");
+        assertEquals(MMapProt.PROT_READ.value(), stub.lastMmapProt, "prot forwarded to int overload");
+        assertEquals(MMapFlag.SHARED.value(), stub.lastMmapFlags, "flags forwarded to int overload");
+        assertEquals(5, stub.lastMmapFd, "fd forwarded to int overload");
+        assertEquals(0L, stub.lastMmapOffset, "offset forwarded to int overload");
+        assertEquals(RecordingPosix.MMAP_RESULT, addr, "return value forwarded from int overload");
     }
 
     @Test
     public void mlockDefaultReturnsFalse() {
         RecordingPosix stub = new RecordingPosix();
-        assertFalse(stub.mlock(0L, 1024L));
+        assertFalse(stub.mlock(0L, 1024L), "mlock default should return false");
     }
 
     @Test
@@ -45,6 +45,7 @@ public class PosixAPIDefaultsTest {
         RecordingPosix stub = new RecordingPosix();
         stub.mlockall(MclFlag.MclCurrent);
         // default implementation is a no-op and must not throw
+        assertEquals(0, stub.lastError(), "mlockall default should not affect lastError");
     }
 
     private static final class RecordingPosix implements PosixAPI {
