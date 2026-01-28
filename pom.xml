@@ -15,7 +15,7 @@
     </parent>
 
     <artifactId>posix</artifactId>
-    <version>2026.0-SNAPSHOT</version>
+    <version>2026.0</version>
     <name>OpenHFT/Posix</name>
     <description>OpenHFT Java Posix APIs</description>
     <packaging>jar</packaging>
@@ -130,6 +130,6 @@
         <connection>scm:git:git@github.com:OpenHFT/posix.git</connection>
         <developerConnection>scm:git:git@github.com:OpenHFT/posix.git</developerConnection>
         <url>scm:git:git@github.com:OpenHFT/posix.git</url>
-	<tag>ea</tag>
+	<tag>posix-2026.0</tag>
     </scm>
 </project>
