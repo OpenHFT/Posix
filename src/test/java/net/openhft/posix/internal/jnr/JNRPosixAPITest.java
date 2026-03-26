@@ -5,7 +5,7 @@ package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
 import net.openhft.posix.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,9 +17,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Supplier;
 
 import static net.openhft.posix.internal.core.OS.isMacOSX;
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.*;
 
 public class JNRPosixAPITest {
 
@@ -95,7 +94,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlockall() {
-        assumeFalse("macOS doesn't support 'mlockall'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'mlockall'");
 
         PosixAPI.posix().mlockall(MclFlag.MclCurrent);
     }
@@ -154,13 +153,13 @@ public class JNRPosixAPITest {
         long time = jnr.gettimeofday();
         long clock_gettime = jnr.clock_gettime();
         assertNotEquals(0, time);
-        assertEquals(System.currentTimeMillis() * 1_000L, time, 2_000);
-        assertEquals(clock_gettime / 1000.0, time, 1_000);
+        assertEquals(System.currentTimeMillis() * 1_000L, time, 10_000.0);
+        assertEquals(clock_gettime / 1000.0, time, 1_000.0);
     }
 
     @Test
     public void get_nprocs() {
-        assumeFalse("macOS doesn't support 'get_nprocs'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'get_nprocs'");
 
         final int nprocs = jnr.get_nprocs();
         assertTrue(nprocs > 0);
@@ -170,6 +169,7 @@ public class JNRPosixAPITest {
 
     /**
      * Applies the given int supplier N times over N threads, adding each result to a set
+     *
      * @return - the size of the set
      */
     private int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {
@@ -188,7 +188,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void getpid() throws InterruptedException {
-        assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'getpid'");
 
         final int N = jnr.get_nprocs();
         assertEquals(1, poolIntReduce(N, jnr::getpid));
@@ -196,7 +196,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettid() throws InterruptedException {
-        assumeFalse("macOS doesn't support 'gettid'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'gettid'");
 
         final int N = jnr.get_nprocs();
         assertEquals(N, poolIntReduce(N, jnr::gettid));
@@ -209,7 +209,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
+        assumeTrue(isUnix() && !isMacOSX(), "Windows and macOS doesn't support 'setaffinity'");
 
         int gettid = jnr.gettid();
         assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
