@@ -32,7 +32,7 @@ public class JNRPosixAPITest {
         assertEquals(0, jnr.lseek(fd, 0, WhenceFlag.SEEK_SET));
         assertEquals(-1, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
         assertEquals(0, jnr.ftruncate(fd, 4096));
-        // 'lseek' on Windows and macOS doesn't support following behavior
+        // 'lseek' on Windows and macOS doesn't support following behaviour
         if (isUnix() && !isMacOSX()) {
             assertEquals(16, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
             assertEquals(4095, jnr.lseek(fd, 4095, WhenceFlag.SEEK_DATA));
