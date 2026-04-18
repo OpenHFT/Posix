@@ -1,4 +1,4 @@
-= Decision Log – OpenHFT Posix
+= Decision Log - OpenHFT Posix
 :doctype: book
 :toc:
 :icons: font
@@ -26,8 +26,8 @@ Chronicle teams span multiple regions. Mixed US/UK spelling and occasional UTF-8
 * Restrict all source and documentation files to **ASCII-7** code-points (0-127).
 
 *Alternatives considered*::
-*Allow UTF-8 universally* – rejected: breaks zero-copy buffers that rely on MSB=0.
-*Allow US spellings* – rejected: inconsistent with London HQ style guide.
+*Allow UTF-8 universally* - rejected: breaks zero-copy buffers that rely on MSB=0.
+*Allow US spellings* - rejected: inconsistent with London HQ style guide.
 
 *Consequences*::
 * Tooling: CI linter added (`scripts/check-ascii.sh`).
@@ -50,8 +50,8 @@ At first successful class-load we try providers in this strict order:
 Override with `-Dchronicle.posix.provider`.
 
 *Alternatives*::
-*ServiceLoader scan* – too slow; non-deterministic.
-*OS-hard-coded providers* – would fork the code-base per platform.
+*ServiceLoader scan* - too slow; non-deterministic.
+*OS-hard-coded providers* - would fork the code-base per platform.
 
 *Consequences*::
 * Single-point selection in `PosixAPIHolder`.
@@ -60,7 +60,7 @@ Override with `-Dchronicle.posix.provider`.
 == ALL-DOC-002 Real-Time Documentation Loop
 
 *Context*::
-Documentation drift led to mis-generated code from AI agents.  The team adopted a “doc-first or doc-alongside” workflow but lacked formal guidance.
+Documentation drift led to mis-generated code from AI agents.  The team adopted a "doc-first or doc-alongside" workflow but lacked formal guidance.
 
 *Decision*::
 * Update AsciiDoc **in the same commit** as code/tests.

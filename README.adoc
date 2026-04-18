@@ -39,22 +39,22 @@ posix.munmap(addr, 4096);
 
 == Design goals
 
-* _Determinism_ – no heap allocation on the hot path.
-* _Portability_ – Linux/macOS/Windows support via provider auto-selection.
-* _Fallback safety_ – `NoOpPosixAPI` guarantees compilation in CI sandboxes.
-* _Traceability_ – every public constant links to POSIX-FN requirements.
+* _Determinism_ - no heap allocation on the hot path.
+* _Portability_ - Linux/macOS/Windows support via provider auto-selection.
+* _Fallback safety_ - `NoOpPosixAPI` guarantees compilation in CI sandboxes.
+* _Traceability_ - every public constant links to POSIX-FN requirements.
 
 == Provider selection & fall-back
 
 [cols="1,1,3"]
 |===
-| Provider | Native layer | Typical when…
+| Provider | Native layer | Typical when...
 
 | `JNRPosixAPI`      | JNR-FFI      | **Linux** & x86_64/ARM, fastest syscalls
 | `WinJNRPosixAPI`   | JNR-FFI      | **Windows** equivalents (subset)
 | `JNAPosixAPI`      | JNA          | exotic/legacy platforms
-| `RawPosixAPI`      | Reflection   | JVM ≥ 21 with `--add-opens`
-| `NoOpPosixAPI`     | —            | CI sandboxes / Graal native-image
+| `RawPosixAPI`      | Reflection   | JVM >= 21 with `--add-opens`
+| `NoOpPosixAPI`     | --            | CI sandboxes / Graal native-image
 |===
 
 `-Dchronicle.posix.provider=` *provider-name* overrides the auto-choice.
@@ -74,7 +74,7 @@ posix.munmap(addr, 4096);
 | addr / 0        | `MAP_FAILED` → -1 sentinel
 
 | CPU-affinity
-| `sched_*affinity*`, helpers `sched_setaffinity_as` …
+| `sched_*affinity*`, helpers `sched_setaffinity_as` ...
 | 0               | portable bit-mask helpers
 
 | Timing
@@ -92,8 +92,8 @@ mvn -q verify
 
 Environment variables:
 
-* `POSIX_TEST_ALLOW_NATIVE` – set to *false* in CI to force `NoOpPosixAPI`.
-* `POSIX_SYSLOG_LEVEL` – adjust logging noise during native provider load.
+* `POSIX_TEST_ALLOW_NATIVE` - set to *false* in CI to force `NoOpPosixAPI`.
+* `POSIX_SYSLOG_LEVEL` - adjust logging noise during native provider load.
 
 == Troubleshooting
 
