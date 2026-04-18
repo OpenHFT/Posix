@@ -71,7 +71,7 @@ posix.munmap(addr, 4096);
 
 | Memory
 | `mmap`, `munmap`, `madvise`, `msync`, `mlock*`, `fallocate`
-| addr / 0        | `MAP_FAILED` → -1 sentinel
+| addr / 0        | `MAP_FAILED` -> -1 sentinel
 
 | CPU-affinity
 | `sched_*affinity*`, helpers `sched_setaffinity_as` ...
@@ -123,4 +123,3 @@ Add JVM arg:
 * link:src/main/adoc/project-requirements.adoc[Functional requirements]
 * link:src/main/adoc/decision-log.adoc[Architecture decision log]
 * link:https://man7.org/linux/man-pages/[Linux man-pages]
-
