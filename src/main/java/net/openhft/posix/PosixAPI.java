@@ -8,7 +8,9 @@ import net.openhft.posix.internal.UnsafeMemory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
@@ -60,22 +62,22 @@ public interface PosixAPI {
     /**
      * Preallocate space for a file.
      *
-     * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
      * @param fd     descriptor
      * @param mode   allocation mode
      * @param offset start offset
      * @param length bytes to allocate
      * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/fallocate.2.html">fallocate(2)</a>
      */
     int fallocate(int fd, int mode, long offset, long length);
 
     /**
      * Truncate a file to the given length.
      *
-     * @see <a href="https://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate(2)</a>
      * @param fd     descriptor
      * @param offset new length
      * @return 0 on success, -1 on error
+     * @see <a href="https://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate(2)</a>
      */
     int ftruncate(int fd, long offset);
 
@@ -214,13 +216,17 @@ public interface PosixAPI {
 
     /**
      * Lock all current and future memory mappings. The default implementation
-     * is a no-op. Calls typically fail when the process exceeds its
-     * {@code RLIMIT_MEMLOCK} or the platform does not implement the
-     * operation.
+     * is a no-op for implementations that do not support {@code mlockall}.
+     * Calls typically fail when the process exceeds its {@code RLIMIT_MEMLOCK}
+     * or the platform does not implement the operation.
      *
      * @param flags bit mask of options
      */
     default void mlockall(int flags) {
+        // default implementation intentionally does nothing for unsupported providers
+        // parameter acknowledged to avoid unused-parameter warnings
+        @SuppressWarnings("unused")
+        final int ignored = flags;
     }
 
     /**
@@ -313,8 +319,13 @@ public interface PosixAPI {
         ProcessBuilder pb = new ProcessBuilder("du", filename);
         pb.redirectErrorStream(true);
         final Process process = pb.start();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        try (InputStream inputStream = process.getInputStream();
+             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(inputStreamReader)) {
             String line = br.readLine();
+            if (line == null) {
+                throw new IOException("du produced no output for " + filename);
+            }
             return Long.parseUnsignedLong(line.split("\\s+")[0]);
         }
     }
@@ -327,6 +338,8 @@ public interface PosixAPI {
      * @see <a href="https://man7.org/linux/man-pages/man2/gettimeofday.2.html">gettimeofday(2)</a>
      */
     int gettimeofday(long timeval);
+
+    //CHECKSTYLE:OFF MethodName
 
     /**
      * Native wrapper for {@code sched_setaffinity(2)}.
@@ -372,19 +385,15 @@ public interface PosixAPI {
             for (int i = 0; i < nprocs_conf; i++) {
                 final int b = UNSAFE.getInt(ptr + i / 32);
                 if (((b >> i) & 1) != 0) {
-                    if (set) {
-                        // nothing.
-                    } else {
+                    if (!set) {
                         start = i;
                         set = true;
                     }
-                } else {
-                    if (set) {
-                        if (sb.length() > 0)
-                            sb.append(',');
-                        sb.append(start).append('-').append(i - 1);
-                        set = false;
-                    }
+                } else if (set) {
+                    if (sb.length() > 0)
+                        sb.append(',');
+                    sb.append(start).append('-').append(i - 1);
+                    set = false;
                 }
             }
             if (set) {
@@ -536,6 +545,8 @@ public interface PosixAPI {
      * @return processor count
      */
     int get_nprocs_conf();
+
+    //CHECKSTYLE:ON MethodName
 
     /**
      * Process ID of the calling process.

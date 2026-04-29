@@ -7,6 +7,7 @@ package net.openhft.posix.internal.jnr;
  * Native bindings for selected POSIX functions on Windows.
  */
 public interface WinJNRPosixInterface {
+    //CHECKSTYLE:OFF MethodName
     // SetFilePointer
     // int ftruncate(int fd, long offset);
 
@@ -96,4 +97,5 @@ public interface WinJNRPosixInterface {
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/strerror-wcsstrerror-mbscstrerror">strerror</a>
      */
     String strerror(int errno);
+    //CHECKSTYLE:ON MethodName
 }

@@ -1,9 +1,12 @@
 = Posix
+:toc:
+:lang: en-GB
+:source-highlighter: rouge
 Peter Lawrey, 31/08/2021
 :toc:
 :icons: font
-:encoding: ISO-8859-1
 :lang: en-GB
+:encoding: ISO-8859-1
 :source-highlighter: rouge
 
 [abstract]
@@ -120,7 +123,7 @@ Add JVM arg:
 
 == Further reading
 
-* link:src/main/adoc/project-requirements.adoc[Functional requirements]
-* link:src/main/adoc/decision-log.adoc[Architecture decision log]
+* link:src/main/docs/project-requirements.adoc[Functional requirements]
+* link:src/main/docs/decision-log.adoc[Architecture decision log]
 * link:https://man7.org/linux/man-pages/[Linux man-pages]
 

@@ -3,8 +3,6 @@
  */
 package net.openhft.posix.internal.jnr;
 
-//import net.openhft.affinity.AffinityLock;
-
 import net.openhft.posix.*;
 import net.openhft.posix.util.Histogram;
 import sun.misc.Unsafe;
@@ -183,7 +181,6 @@ public class BenchmarkMain {
             for (int j = 0; j < 2L << 20; j += 4 << 10) {
                 // fault in one page in advance.
                 final long fault = addr + i + j;
-//                System.out.println("Fault: "+(fault - addr));
                 UNSAFE.compareAndSwapLong(null, fault, 0, 0);
                 for (int x = 0; x < (4 << 10); x += SIZE) {
                     final long raddr = addr + i + j + x;
@@ -193,7 +190,6 @@ public class BenchmarkMain {
                         // int does a little more work than long.
                         UNSAFE.putInt(raddr + y, y);
                     }
-//                    System.out.println("header " + (raddr - addr));
                     UNSAFE.putIntVolatile(null, raddr, SIZE);
                     long time = System.nanoTime() - start;
                     histogram.sample(time);
@@ -203,7 +199,7 @@ public class BenchmarkMain {
                         System.out.println("i: " + i + ", took " + time / 1000 + " us.");
                     next += interval;
                     while (System.nanoTime() < next) {
-                        // spin until the next interval
+                        Thread.yield();
                     }
                 }
             }

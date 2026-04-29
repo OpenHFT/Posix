@@ -1,0 +1,125 @@
+= Posix Security Review
+:toc:
+:sectnums:
+:lang: en-GB
+:source-highlighter: rouge
+
+== Scope and Threat Model
+
+This security review covers the Posix module in `net.openhft.posix` and its internal implementations under `net.openhft.posix.internal`.
+The module provides a Java facade over POSIX system calls using native libraries (for example JNR, JNA, or custom JNI).
+
+The primary security concerns are:
+
+* correct handling of untrusted input passed into native calls;
+* bounds checking around off-heap memory and addresses;
+* behaviour in the presence of partial or failing native libraries;
+* the impact of running with elevated OS privileges.
+
+Posix does not itself implement network protocols, cryptography or authentication.
+Those responsibilities sit in higher layers and external systems.
+
+== Entry Points and Trust Boundaries
+
+=== Public Java API
+
+The main entry point is `PosixAPI.posix()` which returns a singleton facade instance.
+Callers then invoke methods such as:
+
+* `open`, `close`, `read`, `write`, `ftruncate`, `lseek`, `lockf`;
+* `mmap`, `munmap`, `madvise`, `msync`, `mlock`, `mlock2`, `mlockall`;
+* `fallocate`, timing helpers and CPU affinity helpers.
+
+Each of these methods takes primitive parameters (file descriptors, offsets, addresses, lengths) that originate from higher level Chronicle components or application code.
+Posix assumes that callers have already validated data at the protocol or business level; its responsibility is to protect the JVM from native misuse and to surface failures clearly.
+
+=== Native Libraries
+
+Underlying providers use native libraries (for example JNR-FFI or JNA) to bind to libc and kernel syscalls.
+These libraries can:
+
+* crash the process if misused (for example, invalid pointers, incorrect type mappings);
+* exhibit platform-specific behaviour depending on kernel and libc versions;
+* be unavailable entirely in restricted environments.
+
+The `NoOpPosixAPI` provider exists to handle cases where native libraries cannot be loaded or are deliberately disabled for tests or sandboxed CI.
+
+== Secure Coding Practices
+
+=== Input Validation and Bounds Checking
+
+Where Posix accepts raw lengths, offsets or addresses, implementations are expected to:
+
+* reject obviously invalid values (for example negative lengths where the underlying syscall does not support them);
+* avoid integer overflow when converting between Java types and native sizes;
+* ensure that off-heap operations performed through `UnsafeMemory` or equivalent helpers do not read or write outside allocated regions.
+
+Higher level modules remain responsible for protocol-level validation (for example not mapping arbitrary paths from untrusted remote input), but Posix should not make the JVM more fragile when misused.
+
+=== Error Handling and `errno`
+
+Native failures are surfaced through:
+
+* `PosixRuntimeException` with an `errno` value;
+* `lastError()` and `strerror(int)` methods for providers that expose them.
+
+No method should silently ignore native failures in a way that hides data loss or corruption.
+The No-Op provider is the only exception, and its behaviour is explicitly defined to avoid ambiguity.
+
+Callers are encouraged to treat `PosixRuntimeException` as a serious failure and either retry or tear down affected components rather than continuing blindly.
+
+=== Off-Heap Memory and Resource Management
+
+Posix exposes mapping and locking primitives that operate on off-heap memory and file descriptors.
+Secure operation relies on:
+
+* ensuring that every `mmap` has a matching `munmap` call;
+* releasing locks and truncation operations in all code paths, including exception paths;
+* obeying operating system limits (`RLIMIT_MEMLOCK`, file descriptor limits) and not ignoring failures when these are exceeded.
+
+These responsibilities are shared between Posix implementations and their callers.
+The patterns are documented in the `PosixAPI` Javadoc and reinforced through automated tests.
+
+== Permissions and Privileged Operations
+
+Some Posix operations may require elevated privileges or specific capabilities on certain platforms.
+Examples include:
+
+* locking large regions of memory (`mlockall`) beyond default limits;
+* changing CPU affinity in environments where administrators restrict such operations;
+* operating on files or devices that require special modes.
+
+The module does not bypass the operating system’s permission checks.
+Instead, it surfaces any errors via `errno` and exceptions.
+Deployment documentation for higher level products should note which OS settings are required for successful operation.
+
+== Static Analysis and Testing
+
+Posix participates in the shared Chronicle quality stack:
+
+* Checkstyle (using the Chronicle baseline) enforces Java-level coding conventions and flags risky constructs.
+* SpotBugs (with the `spotbugs27` low-violation include set) highlights potential resource leaks, error-handling issues and unsafe patterns.
+
+Tests in this module are expected to:
+
+* exercise success and failure paths for key syscalls;
+* validate that `NoOpPosixAPI` behaves as specified when native libraries are absent;
+* run under both native providers and No-Op where possible to confirm behaviour is consistent.
+
+When suppressions are required (for example around deliberate use of Unsafe or platform-specific idioms), they should be documented and justified in the code and, where appropriate, in this review.
+
+== Known Limitations and Future Work
+
+At the time of writing:
+
+* The security posture for Posix assumes that the JVM and native libraries are trusted components.
+  The module does not attempt to sandbox or constrain arbitrary native code.
+* Some error conditions are still surfaced through return codes rather than exceptions.
+  Moving towards a consistent exception-first model may improve safety and traceability.
+* CPU affinity helpers do not enforce any particular security policy; they rely on higher layers to ensure that affinity usage aligns with operational constraints.
+
+Future research (tracked in root guides such as `ARCHITECTURE_RESEARCH_GUIDE.adoc` and `Posix/TODO.md`) includes:
+
+* evaluating alternative binding technologies (for example Project Panama) for performance and safety;
+* broadening test coverage across different kernels and libc versions;
+* adding more explicit bounds checking in places where assumptions about address ranges are currently implicit.

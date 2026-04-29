@@ -152,10 +152,10 @@ public class JNRPosixAPITest {
         long firstCallIsSlow2 = jnr.clock_gettime();
 
         long time = jnr.gettimeofday();
-        long clock_gettime = jnr.clock_gettime();
+        long clockGettime = jnr.clock_gettime();
         assertNotEquals(0, time);
         assertEquals(System.currentTimeMillis() * 1_000L, time, 2_000);
-        assertEquals(clock_gettime / 1000.0, time, 1_000);
+        assertEquals(clockGettime / 1000.0, time, 1_000);
     }
 
     @Test
@@ -169,19 +169,24 @@ public class JNRPosixAPITest {
     }
 
     /**
-     * Applies the given int supplier N times over N threads, adding each result to a set
-     * @return - the size of the set
+     * Applies the given supplier `n` times across `n` threads, collecting results into a set.
+     *
+     * @param n thread count/result count
+     * @param r supplier to invoke
+     * @return number of distinct results produced
      */
-    private int poolIntReduce(int N, Supplier<Integer> r) throws InterruptedException {
+    private int poolIntReduce(int n, Supplier<Integer> r) throws InterruptedException {
         final ConcurrentSkipListSet<Integer> items = new ConcurrentSkipListSet<>();
         final ArrayList<Thread> threads = new ArrayList<>();
 
-        for (int i = 0; i < N; ++i) {
+        for (int i = 0; i < n; ++i) {
             Thread t = new Thread(() -> items.add(r.get()));
             t.start();
             threads.add(t);
         }
-        for (Thread t : threads) t.join();
+        for (Thread t : threads) {
+            t.join();
+        }
 
         return items.size();
     }

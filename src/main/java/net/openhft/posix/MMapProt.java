@@ -32,7 +32,7 @@ public enum MMapProt {
     /** Native constant value. */
     final int value;
 
-   /**
+    /**
      * @param value native constant value
      */
     MMapProt(int value) {

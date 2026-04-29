@@ -34,7 +34,6 @@ import static org.junit.Assert.assertEquals;
  tmpfs
  path: /tmp, sync: 50/90 97/99 99.7/99.9 99.97/99.99 - worst was 0.190 / 0.210  0.300 / 0.420  1.130 / 1.150  1.282 / 25.31 - 25.31
  */
-
 public class MSyncFileBenchmarkMain {
     private static final String PATH = System.getProperty("path", "/tmp");
     private static final int LENGTH = Integer.getInteger("length", 64 << 10);

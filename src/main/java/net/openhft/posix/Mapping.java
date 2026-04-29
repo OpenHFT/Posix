@@ -14,6 +14,7 @@ import net.openhft.posix.internal.UnsafeMemory;
  * <p>
  * On a 32-bit VM the addresses are truncated.
  * Instances are thread-safe and immutable.
+ *
  * @see <a href="https://man7.org/linux/man-pages/man5/proc.5.html">proc(5)</a>
  */
 public final class Mapping {

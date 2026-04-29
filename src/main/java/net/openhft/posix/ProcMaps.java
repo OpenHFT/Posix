@@ -4,8 +4,10 @@
 package net.openhft.posix;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -33,7 +35,8 @@ public final class ProcMaps {
      * @throws IOException on read failure
      */
     private ProcMaps(Object proc) throws IOException {
-        try (BufferedReader br = new BufferedReader(new FileReader("/proc/" + proc + "/maps"))) {
+        try (BufferedReader br = Files.newBufferedReader(
+                Paths.get("/proc/" + proc + "/maps"), StandardCharsets.UTF_8)) {
             for (String line; (line = br.readLine()) != null; ) {
                 mappingList.add(new Mapping(line));
             }
