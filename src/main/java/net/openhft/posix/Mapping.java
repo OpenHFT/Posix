@@ -3,7 +3,6 @@
  */
 package net.openhft.posix;
 
-import net.openhft.posix.internal.UnsafeMemory;
 
 /**
  * Representation of one line from {@code /proc/[pid]/maps}.
@@ -52,9 +51,13 @@ public final class Mapping {
     public Mapping(String line) {
         String[] parts = line.split(" +");
         String[] addrs = parts[0].split("\\-");
-        long addr0 = Long.parseUnsignedLong(addrs[0], 16);
-        addr = UnsafeMemory.IS32BIT ? (int) addr0 : addr0;
-        length = Long.parseUnsignedLong(addrs[1], 16) - addr0;
+        // /proc/self/maps emits unsigned native addresses; parseUnsignedLong
+        // returns them losslessly as long. No narrowing/masking needed -- on
+        // 32-bit systems /proc only emits 32-bit values that already fit in
+        // the low 32 bits of a long. The prior `(int) addr0` branch corrupted
+        // unsigned 32-bit addresses >= 2 GiB.
+        addr = Long.parseUnsignedLong(addrs[0], 16);
+        length = Long.parseUnsignedLong(addrs[1], 16) - addr;
         perms = parts[1];
         offset = Long.parseUnsignedLong(parts[2], 16);
         device = parts[3];
