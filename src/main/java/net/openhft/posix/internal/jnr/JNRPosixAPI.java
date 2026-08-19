@@ -161,31 +161,44 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public boolean mlock(long addr, long length) {
-        if(Jvm.isAzul()) {
-            LOGGER.warn("mlock called but ignored for Azul");
-            return true; // no-op on Azul, ignore
-        }
-
-        int err = jnr.mlock(addr, length);
-        if (err == 0)
-            return true;
-        if (err == Errno.ENOMEM.intValue())
-            return false;
-        throw throwPosixException("mlock length: " + length + " ");
+        return handleMlockResult(jnr.mlock(addr, length), "mlock length: " + length + " ");
     }
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
-        if(Jvm.isAzul()) {
-            LOGGER.warn("mlock2 called but ignored for Azul");
-            return true; // no-op on Azul, ignore
-        }
-        int err = mlock2Native(addr, length, lockOnFault);
-        if (err == 0)
+        return handleMlockResult(mlock2Native(addr, length, lockOnFault), "mlock2 length: " + length + " ");
+    }
+
+    /**
+     * Interprets an {@code mlock}/{@code mlock2} native result honestly.
+     * <p>
+     * POSIX {@code mlock} returns {@code 0} on success and {@code -1} on failure with the reason in
+     * {@code errno} - so the previous {@code result == ENOMEM} comparison could never match (the
+     * result is {@code -1}, not the errno value) and every failure was thrown. It also short-circuited
+     * to {@code return true} on Azul without locking anything, reporting success while the memory was
+     * not locked. Both are corrected here: call the native op on every vendor, read {@code errno} on
+     * failure, and map the expected "cannot lock" conditions (permission / limit / transient) to
+     * {@code false} while still throwing on genuinely unexpected errors. This is what unblocked the
+     * original Azul/Zing {@code ENOMEM} case (Posix#15) - gracefully, without a false success.
+     */
+    private boolean handleMlockResult(int result, String msg) {
+        if (result == 0)
             return true;
-        if (err == Errno.ENOMEM.intValue())
+        final int lastError = RUNTIME.getLastError();
+        if (lastError == Errno.ENOMEM.intValue()
+                || lastError == Errno.EPERM.intValue()
+                || lastError == Errno.EAGAIN.intValue()) {
+            LOGGER.warn(msg + "not locked: " + errnoName(lastError));
             return false;
-        throw throwPosixException("mlock2 length: " + length + " ");
+        }
+        throw throwPosixException(msg);
+    }
+
+    private static String errnoName(int lastError) {
+        for (Errno errno : Errno.values())
+            if (errno.intValue() == lastError)
+                return errno.toString();
+        return "errno " + lastError;
     }
 
     @Override
