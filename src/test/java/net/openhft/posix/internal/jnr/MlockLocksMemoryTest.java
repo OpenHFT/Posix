@@ -32,8 +32,12 @@ public class MlockLocksMemoryTest {
 
     @Test
     public void mlockReportedSuccessImpliesMemoryActuallyLocked() throws IOException {
+        assumeTrue("enable with -Dposix.mlock.integration=true",
+                Boolean.getBoolean("posix.mlock.integration"));
         assumeTrue("needs Linux /proc/self/status", new File("/proc/self/status").exists());
-        final JNRPosixAPI jnr = (JNRPosixAPI) PosixAPI.posix();
+        final PosixAPI posix = PosixAPI.posix();
+        assumeTrue("needs the JNR provider", posix instanceof JNRPosixAPI);
+        final JNRPosixAPI jnr = (JNRPosixAPI) posix;
 
         final Path file = Files.createTempFile("mlock", ".test");
         final String filename = file.toAbsolutePath().toString();

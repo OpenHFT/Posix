@@ -10,12 +10,13 @@ import jnr.ffi.Runtime;
 import jnr.ffi.provider.FFIProvider;
 import net.openhft.posix.*;
 import net.openhft.posix.internal.UnsafeMemory;
-import net.openhft.posix.internal.core.Jvm;
 import net.openhft.posix.internal.core.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.function.IntSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
@@ -23,9 +24,9 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 /**
  * Implementation of {@link PosixAPI} using JNR (Java Native Runtime).
  *
- * <p>Where a JNR binding is absent this class issues raw syscalls using
- * hard-coded numbers chosen for common architectures.  If the kernel does not
- * recognise a number the call gracefully falls back to the available wrapper.</p>
+ * <p>Where the {@code mlock2} JNR binding is absent this class issues a raw
+ * syscall only for a recognised Linux CPU ABI. Unsupported kernels, operating
+ * systems and ABIs return {@code false} rather than invoking an unrelated syscall.</p>
  */
 public final class JNRPosixAPI implements PosixAPI {
 
@@ -40,16 +41,16 @@ public final class JNRPosixAPI implements PosixAPI {
     static final int LOCK_EX = 2;
     static final int LOCK_UN = 8;
     static final int MLOCK_ONFAULT = 1;
-    static final int SYS_mlock2; // mlock2 syscall value
-
-    static {
-        // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
-        SYS_mlock2 = Jvm.isArm() ? 390
-                : Jvm.is64bit() ? 325 : 376;
-    }
+    static final int MLOCK2_UNAVAILABLE = Integer.MIN_VALUE;
+    static final int SYS_MLOCK2 = mlock2SyscallNumber(
+            NATIVE_PLATFORM.getOS(), System.getProperty("os.arch", ""));
 
     // JNR interface for POSIX functions
     private final JNRPosixInterface jnr;
+
+    private final IntSupplier lastErrorSupplier;
+
+    private final int mlock2SyscallNumber;
 
     // Supplier for gettid method
     private final IntSupplier gettid;
@@ -58,7 +59,14 @@ public final class JNRPosixAPI implements PosixAPI {
      * Constructs a JNRPosixAPI instance and initializes the JNR interface and gettid supplier.
      */
     public JNRPosixAPI() {
-        jnr = LibraryUtil.load(JNRPosixInterface.class, STANDARD_C_LIBRARY_NAME);
+        this(LibraryUtil.load(JNRPosixInterface.class, STANDARD_C_LIBRARY_NAME),
+                RUNTIME::getLastError, SYS_MLOCK2);
+    }
+
+    JNRPosixAPI(JNRPosixInterface jnr, IntSupplier lastErrorSupplier, int mlock2SyscallNumber) {
+        this.jnr = Objects.requireNonNull(jnr);
+        this.lastErrorSupplier = Objects.requireNonNull(lastErrorSupplier);
+        this.mlock2SyscallNumber = mlock2SyscallNumber;
         gettid = getGettid();
     }
 
@@ -117,8 +125,8 @@ public final class JNRPosixAPI implements PosixAPI {
      * @param msg The message to include in the exception.
      * @return A {@link PosixRuntimeException} with the specified message and last error.
      */
-    private static RuntimeException throwPosixException(String msg) {
-        final int lastError = RUNTIME.getLastError();
+    private RuntimeException throwPosixException(String msg) {
+        final int lastError = lastErrorSupplier.getAsInt();
         for (Errno errno : Errno.values()) {
             if (errno.intValue() == lastError)
                 throw new PosixRuntimeException(msg + "error " + errno, lastError);
@@ -132,7 +140,7 @@ public final class JNRPosixAPI implements PosixAPI {
         final Pointer wrap = addr == 0 ? NULL : Pointer.wrap(RUNTIME, addr);
         final long mmap = jnr.mmap(wrap, length, prot, flags, fd, offset);
         if (mmap == 0 || mmap == -1) {
-            final int lastError = RUNTIME.getLastError();
+            final int lastError = lastErrorSupplier.getAsInt();
             for (Errno errno : Errno.values()) {
                 if (errno.intValue() == lastError)
                     throw new PosixRuntimeException(errno.toString(), lastError);
@@ -155,8 +163,13 @@ public final class JNRPosixAPI implements PosixAPI {
         if (!lockOnFault || OS.isMacOSX())
             return jnr.mlock(addr, length);
 
-        // Older glibc versions do not include a wrapper for mlock2, so use syscall for generality
-        return jnr.syscall(SYS_mlock2, addr, length, MLOCK_ONFAULT);
+        try {
+            return jnr.mlock2(addr, length, MLOCK_ONFAULT);
+        } catch (UnsatisfiedLinkError unavailable) {
+            if (mlock2SyscallNumber < 0)
+                return MLOCK2_UNAVAILABLE;
+            return jnr.syscall(mlock2SyscallNumber, addr, length, MLOCK_ONFAULT);
+        }
     }
 
     @Override
@@ -184,10 +197,16 @@ public final class JNRPosixAPI implements PosixAPI {
     private boolean handleMlockResult(int result, String msg) {
         if (result == 0)
             return true;
-        final int lastError = RUNTIME.getLastError();
+        if (result == MLOCK2_UNAVAILABLE) {
+            LOGGER.warn(msg + "not locked: mlock2 unavailable for architecture " +
+                    System.getProperty("os.arch", "unknown"));
+            return false;
+        }
+        final int lastError = lastErrorSupplier.getAsInt();
         if (lastError == Errno.ENOMEM.intValue()
                 || lastError == Errno.EPERM.intValue()
-                || lastError == Errno.EAGAIN.intValue()) {
+                || lastError == Errno.EAGAIN.intValue()
+                || lastError == Errno.ENOSYS.intValue()) {
             LOGGER.warn(msg + "not locked: " + errnoName(lastError));
             return false;
         }
@@ -199,6 +218,23 @@ public final class JNRPosixAPI implements PosixAPI {
             if (errno.intValue() == lastError)
                 return errno.toString();
         return "errno " + lastError;
+    }
+
+    static int mlock2SyscallNumber(Platform.OS operatingSystem, String architecture) {
+        if (operatingSystem != Platform.OS.LINUX)
+            return -1;
+        final String arch = architecture.toLowerCase(Locale.ROOT);
+        if (arch.equals("x86_64") || arch.equals("amd64"))
+            return 325;
+        if (arch.equals("x86") || arch.matches("i[3-6]86"))
+            return 376;
+        if (arch.equals("aarch64") || arch.equals("arm64"))
+            return 284;
+        if (arch.equals("arm") || arch.equals("arm32") || arch.matches("armv[5-8].*"))
+            return 390;
+        if (arch.equals("riscv64"))
+            return 284;
+        return -1;
     }
 
     @Override
@@ -231,7 +267,7 @@ public final class JNRPosixAPI implements PosixAPI {
                     continue;
                 final long kb = mapping.length() / 1024;
                 if (ret != 0) {
-                    final int lastError = RUNTIME.getLastError();
+                    final int lastError = lastErrorSupplier.getAsInt();
                     for (Errno errno : Errno.values()) {
                         if (errno.intValue() == lastError)
                             System.out.println(mapping + "len: " + kb + " KiB " + " " + errno);
