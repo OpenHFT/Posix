@@ -5,7 +5,7 @@ package net.openhft.posix.internal.jnr;
 
 import jnr.ffi.Platform;
 import net.openhft.posix.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Supplier;
 
 import static net.openhft.posix.internal.core.OS.isMacOSX;
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class JNRPosixAPITest {
 
@@ -95,7 +95,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlockall() {
-        assumeFalse("macOS doesn't support 'mlockall'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'mlockall'");
 
         PosixAPI.posix().mlockall(MclFlag.MclCurrent);
     }
@@ -160,7 +160,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void get_nprocs() {
-        assumeFalse("macOS doesn't support 'get_nprocs'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'get_nprocs'");
 
         final int nprocs = jnr.get_nprocs();
         assertTrue(nprocs > 0);
@@ -193,7 +193,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void getpid() throws InterruptedException {
-        assumeFalse("macOS doesn't support 'getpid'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'getpid'");
 
         final int N = jnr.get_nprocs();
         assertEquals(1, poolIntReduce(N, jnr::getpid));
@@ -201,7 +201,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void gettid() throws InterruptedException {
-        assumeFalse("macOS doesn't support 'gettid'", isMacOSX());
+        assumeFalse(isMacOSX(), "macOS doesn't support 'gettid'");
 
         final int N = jnr.get_nprocs();
         assertEquals(N, poolIntReduce(N, jnr::gettid));
@@ -214,7 +214,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
+        assumeTrue(isUnix() && !isMacOSX(), "Windows and macOS doesn't support 'setaffinity'");
 
         int gettid = jnr.gettid();
         assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
