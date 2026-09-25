@@ -16,6 +16,7 @@ import java.nio.file.Path;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -27,6 +28,8 @@ import static org.junit.Assume.assumeTrue;
  * process's locked-memory count ({@code VmLck} in {@code /proc/self/status}) before and after the call.
  */
 public class MlockLocksMemoryTest {
+    /** VmLck reports KiB while the native wrapper accepts bytes. */
+    private static final int BYTES_PER_KIB = 1024;
 
     private static final long LOCK_LEN = 4096;
 
@@ -50,11 +53,16 @@ public class MlockLocksMemoryTest {
                 final long lockedBefore = vmLckKb();
                 final boolean locked = jnr.mlock(addr, LOCK_LEN);
                 final long lockedAfter = vmLckKb();
+                System.out.printf("mlock evidence: result=%s "
+                                + "VmLck before=%d KiB after=%d KiB "
+                                + "requested=%d bytes%n",
+                        locked, lockedBefore, lockedAfter, LOCK_LEN);
 
                 if (locked) {
                     // The honest contract: a true result means the pages are genuinely locked.
-                    assertNotEquals("mlock returned true but VmLck did not increase (false success)",
-                            lockedBefore, lockedAfter);
+                    long requestedKb = LOCK_LEN / BYTES_PER_KIB;
+                    assertTrue("mlock did not lock the requested length",
+                            lockedAfter - lockedBefore >= requestedKb);
                 } else {
                     // A false result (e.g. RLIMIT_MEMLOCK exhausted) must not have locked anything.
                     assertEquals("mlock returned false but VmLck increased", lockedBefore, lockedAfter);
@@ -69,11 +77,11 @@ public class MlockLocksMemoryTest {
         }
     }
 
-    /** Locked memory in KiB from {@code /proc/self/status} ({@code VmLck}), or 0 if absent. */
+    /** Locked memory in KiB from {@code /proc/self/status} ({@code VmLck}). */
     private static long vmLckKb() throws IOException {
         for (String line : Files.readAllLines(new File("/proc/self/status").toPath()))
             if (line.startsWith("VmLck:"))
                 return Long.parseLong(line.replaceAll("[^0-9]", ""));
-        return 0;
+        throw new IOException("VmLck is absent from /proc/self/status");
     }
 }

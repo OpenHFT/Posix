@@ -52,6 +52,9 @@ public final class JNRPosixAPI implements PosixAPI {
 
     private final int mlock2SyscallNumber;
 
+    /** Pins OS routing so proxy tests can select either platform's fallback. */
+    private final boolean macOS;
+
     // Supplier for gettid method
     private final IntSupplier gettid;
 
@@ -64,9 +67,16 @@ public final class JNRPosixAPI implements PosixAPI {
     }
 
     JNRPosixAPI(JNRPosixInterface jnr, IntSupplier lastErrorSupplier, int mlock2SyscallNumber) {
-        this.jnr = Objects.requireNonNull(jnr);
-        this.lastErrorSupplier = Objects.requireNonNull(lastErrorSupplier);
-        this.mlock2SyscallNumber = mlock2SyscallNumber;
+        this(jnr, lastErrorSupplier, mlock2SyscallNumber, OS.isMacOSX());
+    }
+
+    JNRPosixAPI(final JNRPosixInterface nativeApi,
+               final IntSupplier errnoSupplier,
+               final int syscallNumber, final boolean macPlatform) {
+        this.jnr = Objects.requireNonNull(nativeApi);
+        this.lastErrorSupplier = Objects.requireNonNull(errnoSupplier);
+        this.mlock2SyscallNumber = syscallNumber;
+        this.macOS = macPlatform;
         gettid = getGettid();
     }
 
@@ -126,7 +136,11 @@ public final class JNRPosixAPI implements PosixAPI {
      * @return A {@link PosixRuntimeException} with the specified message and last error.
      */
     private RuntimeException throwPosixException(String msg) {
-        final int lastError = lastErrorSupplier.getAsInt();
+        return throwPosixException(msg, lastErrorSupplier.getAsInt());
+    }
+
+    private RuntimeException throwPosixException(final String msg,
+                                                final int lastError) {
         for (Errno errno : Errno.values()) {
             if (errno.intValue() == lastError)
                 throw new PosixRuntimeException(msg + "error " + errno, lastError);
@@ -160,8 +174,9 @@ public final class JNRPosixAPI implements PosixAPI {
     private int mlock2Native(long addr, long length, boolean lockOnFault) {
         // Degrade to mlock for all platforms if lockOnFault not set
         // or always for macOS which doesn't support mlock2 at all
-        if (!lockOnFault || OS.isMacOSX())
+        if (!lockOnFault || macOS) {
             return jnr.mlock(addr, length);
+        }
 
         try {
             return jnr.mlock2(addr, length, MLOCK_ONFAULT);
@@ -210,7 +225,7 @@ public final class JNRPosixAPI implements PosixAPI {
             LOGGER.warn(msg + "not locked: " + errnoName(lastError));
             return false;
         }
-        throw throwPosixException(msg);
+        throw throwPosixException(msg, lastError);
     }
 
     private static String errnoName(int lastError) {

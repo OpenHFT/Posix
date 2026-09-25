@@ -12,10 +12,16 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntSupplier;
 
 import static org.junit.Assert.*;
 
 public class MlockResultTest {
+    /** Known AArch64/RISC-V number; proxy calls issue no native syscall. */
+    private static final int TEST_SYSCALL = 284;
+
+    /** One page for both wrappers; the proxy never dereferences the address. */
+    private static final long LOCK_LENGTH = 4096L;
 
     @Test
     public void expectedResultsAreInterpretedForMlockAndMlock2() {
@@ -95,6 +101,60 @@ public class MlockResultTest {
         assertEquals(0, calls.mlock2Calls.get());
     }
 
+    /** Mac results use mlock even when on-fault locking is requested. */
+    @Test
+    public void macOnFaultUsesMlockAndPreservesItsResult() {
+        int[] errors = {0, Errno.ENOMEM.intValue(), Errno.EINVAL.intValue()};
+        for (int errno : errors) {
+            NativeCalls calls = new NativeCalls();
+            calls.mlockResult = errno == 0 ? 0 : -1;
+            calls.mlock2Unavailable = true;
+            JNRPosixAPI api = calls.api(() -> errno, TEST_SYSCALL, true);
+
+            if (errno == Errno.EINVAL.intValue()) {
+                assertThrowsErrno(errno,
+                        () -> api.mlock2(1L, LOCK_LENGTH, true));
+            } else {
+                assertEquals(errno == 0, api.mlock2(1L, LOCK_LENGTH, true));
+            }
+            assertEquals(1, calls.mlockCalls.get());
+            assertEquals(0, calls.mlock2Calls.get());
+            assertEquals(0, calls.syscallCalls.get());
+        }
+    }
+
+    /** A later errno read must not replace the error returned by mlock. */
+    @Test
+    public void mlockUnexpectedErrorUsesCapturedErrno() {
+        assertCapturedErrno(false);
+    }
+
+    /** The on-fault wrapper must preserve the same first-error contract. */
+    @Test
+    public void mlock2UnexpectedErrorUsesCapturedErrno() {
+        assertCapturedErrno(true);
+    }
+
+    private static void assertCapturedErrno(final boolean onFault) {
+        NativeCalls calls = new NativeCalls();
+        calls.mlockResult = -1;
+        calls.mlock2Result = -1;
+        AtomicInteger reads = new AtomicInteger();
+        int original = Errno.EINVAL.intValue();
+        IntSupplier errno = () -> reads.getAndIncrement() == 0
+                ? original : Errno.EIO.intValue();
+        JNRPosixAPI api = calls.api(errno, TEST_SYSCALL, false);
+
+        assertThrowsErrno(original, () -> {
+            if (onFault) {
+                api.mlock2(1L, LOCK_LENGTH, true);
+            } else {
+                api.mlock(1L, LOCK_LENGTH);
+            }
+        });
+        assertEquals("errno must be captured once", 1, reads.get());
+    }
+
     private static void assertResult(int nativeResult, int errno, boolean expected) {
         NativeCalls mlockCalls = new NativeCalls();
         mlockCalls.mlockResult = nativeResult;
@@ -139,10 +199,15 @@ public class MlockResultTest {
         int lastSyscallNumber = -1;
 
         JNRPosixAPI api(int errno, int syscallNumber) {
+            return api(() -> errno, syscallNumber, false);
+        }
+
+        JNRPosixAPI api(final IntSupplier errno, final int syscallNumber,
+                       final boolean macOS) {
             JNRPosixInterface proxy = (JNRPosixInterface) Proxy.newProxyInstance(
                     JNRPosixInterface.class.getClassLoader(),
                     new Class<?>[]{JNRPosixInterface.class}, this);
-            return new JNRPosixAPI(proxy, () -> errno, syscallNumber);
+            return new JNRPosixAPI(proxy, errno, syscallNumber, macOS);
         }
 
         @Override

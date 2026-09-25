@@ -48,7 +48,14 @@ full flag coverage via `MMapProt`, `MMapFlag`, `MAdviseFlag`,
 `MSyncFlag`, `MclFlag`. Memory locking returns `false` for resource,
 permission, transient and unsupported-operation errors; other errors
 raise `PosixRuntimeException` with the saved `errno`. Raw `mlock2`
-syscalls are used only for recognised Linux CPU ABIs.
+syscalls are used only for recognised Linux CPU ABIs. On macOS,
+`mlock2` uses `mlock`, including when on-fault locking is requested.
+`MlockResultTest` checks both routing decisions independently of the
+test host and verifies that unexpected errors preserve the first errno.
+Native success is qualified separately by opting in with
+`-Dposix.mlock.integration=true`; `MlockLocksMemoryTest` records the
+before/after `VmLck` values and requires an increase of at least the
+requested lock length. An ignored native test is not native-success evidence.
 
 | POSIX-FN-006
 | File space pre-allocation
