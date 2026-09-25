@@ -195,6 +195,8 @@ public interface PosixAPI {
      * first access when {@code lockOnFault} is {@code true}. The default
      * implementation returns {@code false}. Failure reasons mirror those of
      * {@code mlock} and also include lack of kernel support for {@code mlock2}.
+     * The JNR provider returns {@code false} for Linux {@code ENOSYS}; on macOS,
+     * where {@code mlock2} is absent, it performs an eager {@code mlock} instead.
      *
      * @param addr        start address
      * @param length      number of bytes to lock
