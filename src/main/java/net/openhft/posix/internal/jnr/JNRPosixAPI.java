@@ -70,6 +70,9 @@ public final class JNRPosixAPI implements PosixAPI {
         this(jnr, lastErrorSupplier, mlock2SyscallNumber, OS.isMacOSX());
     }
 
+    //! Inject native calls, errno and OS routing so result/fallback tests can distinguish them on one host.
+    //! Production still binds RUNTIME::getLastError. MlockResultTest#macOnFaultUsesMlockAndPreservesItsResult
+    //! and #mlockUnexpectedErrorUsesCapturedErrno use this seam; proxy results are not native ABI qualification.
     JNRPosixAPI(final JNRPosixInterface nativeApi,
                final IntSupplier errnoSupplier,
                final int syscallNumber, final boolean macPlatform) {
@@ -139,6 +142,10 @@ public final class JNRPosixAPI implements PosixAPI {
         return throwPosixException(msg, lastErrorSupplier.getAsInt());
     }
 
+    //! Use the errno captured immediately after the failing call; a second read can overwrite the cause.
+    //! MlockResultTest#mlockUnexpectedErrorUsesCapturedErrno and
+    //! #mlock2UnexpectedErrorUsesCapturedErrno change the supplier after its first read and require
+    //! the original errno. Re-reading during exception construction breaks those assertions.
     private RuntimeException throwPosixException(final String msg,
                                                 final int lastError) {
         for (Errno errno : Errno.values()) {
@@ -171,6 +178,10 @@ public final class JNRPosixAPI implements PosixAPI {
      * @param lockOnFault Whether to lock on fault.
      * @return The result of the mlock2 system call.
      */
+    //! Use eager mlock when on-fault locking was not requested or macOS lacks mlock2.
+    //! MlockResultTest#lockWithoutOnFaultUsesMlockWrapper and
+    //! #macOnFaultUsesMlockAndPreservesItsResult assert the selected wrapper and its result;
+    //! these platform-routing proxies do not replace a real macOS execution receipt.
     private int mlock2Native(long addr, long length, boolean lockOnFault) {
         // Degrade to mlock for all platforms if lockOnFault not set
         // or always for macOS which doesn't support mlock2 at all
@@ -179,6 +190,10 @@ public final class JNRPosixAPI implements PosixAPI {
         }
 
         try {
+            //! Prefer libc's mlock2 binding; use a raw number only when the symbol is absent and the ABI is known.
+            //! MlockResultTest#mlock2PrefersLibcBinding, #missingBindingUsesAbiSpecificSyscall and
+            //! #missingBindingOnUnknownAbiDoesNotInvokeRawSyscall check these branches. Guessing a number
+            //! for an unknown ABI could invoke an unrelated syscall.
             return jnr.mlock2(addr, length, MLOCK_ONFAULT);
         } catch (UnsatisfiedLinkError unavailable) {
             if (mlock2SyscallNumber < 0)
@@ -188,11 +203,17 @@ public final class JNRPosixAPI implements PosixAPI {
     }
 
     @Override
+    //! Call the native operation on every JVM vendor; a vendor-name shortcut must not report an unlocked page as locked.
+    //! MlockLocksMemoryTest#mlockReportedSuccessImpliesMemoryActuallyLocked checks a real VmLck increase
+    //! on its admitted Linux run. It does not qualify every vendor, ABI or the original Zing environment.
     public boolean mlock(long addr, long length) {
         return handleMlockResult(jnr.mlock(addr, length), "mlock length: " + length + " ");
     }
 
     @Override
+    //! Apply the same honest native-result interpretation to mlock2, including unsupported fallback.
+    //! MlockResultTest#expectedResultsAreInterpretedForMlockAndMlock2 requires success only for zero,
+    //! false for expected inability to lock, and an exception for unexpected errno.
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
         return handleMlockResult(mlock2Native(addr, length, lockOnFault), "mlock2 length: " + length + " ");
     }
@@ -209,6 +230,11 @@ public final class JNRPosixAPI implements PosixAPI {
      * {@code false} while still throwing on genuinely unexpected errors. This is what unblocked the
      * original Azul/Zing {@code ENOMEM} case (Posix#15) - gracefully, without a false success.
      */
+    //! Native failure returns -1, not the errno value. Read errno once and return false for the
+    //! documented permission/resource/transient/unsupported cases; retain unexpected failures.
+    //! MlockResultTest#expectedResultsAreInterpretedForMlockAndMlock2 would throw instead of
+    //! returning false if ENOMEM were compared with the raw return value. The unavailable sentinel
+    //! must return false without pretending a syscall ran or consuming stale errno.
     private boolean handleMlockResult(int result, String msg) {
         if (result == 0)
             return true;
@@ -235,6 +261,10 @@ public final class JNRPosixAPI implements PosixAPI {
         return "errno " + lastError;
     }
 
+    //! Raw syscall numbers depend on OS and CPU ABI, not just ARM or word size.
+    //! MlockResultTest#syscallNumbersAreSelectedByActualAbi distinguishes AArch64/ARM32/x86;
+    //! #linuxSyscallNumbersAreNeverUsedOnAnotherUnixAbi rejects foreign kernels. Unknown ABIs
+    //! remain unsupported rather than guessing; these dispatch assertions are not native execution on every ABI.
     static int mlock2SyscallNumber(Platform.OS operatingSystem, String architecture) {
         if (operatingSystem != Platform.OS.LINUX)
             return -1;
