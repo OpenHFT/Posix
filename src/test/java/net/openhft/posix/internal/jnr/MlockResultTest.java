@@ -91,6 +91,24 @@ public class MlockResultTest {
     }
 
     @Test
+    public void unavailableSentinelDoesNotReadErrno() {
+        for (int staleErrno : new int[]{0, Errno.EINVAL.intValue(), Errno.ENOSYS.intValue()}) {
+            NativeCalls calls = new NativeCalls();
+            calls.mlock2Unavailable = true;
+            AtomicInteger errnoReads = new AtomicInteger();
+            JNRPosixAPI api = calls.api(() -> {
+                errnoReads.incrementAndGet();
+                return staleErrno;
+            }, -1, false);
+
+            assertFalse("unknown ABI must report unavailable", api.mlock2(1L, LOCK_LENGTH, true));
+            assertEquals("libc binding attempted once", 1, calls.mlock2Calls.get());
+            assertEquals("no raw syscall on unknown ABI", 0, calls.syscallCalls.get());
+            assertEquals("unavailable sentinel must not read errno", 0, errnoReads.get());
+        }
+    }
+
+    @Test
     public void lockWithoutOnFaultUsesMlockWrapper() {
         NativeCalls calls = new NativeCalls();
         calls.mlockResult = 0;
