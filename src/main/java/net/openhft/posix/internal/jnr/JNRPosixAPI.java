@@ -233,8 +233,10 @@ public final class JNRPosixAPI implements PosixAPI {
     //! Native failure returns -1, not the errno value. Read errno once and return false for the
     //! documented permission/resource/transient/unsupported cases; retain unexpected failures.
     //! MlockResultTest#expectedResultsAreInterpretedForMlockAndMlock2 would throw instead of
-    //! returning false if ENOMEM were compared with the raw return value. The unavailable sentinel
-    //! must return false without pretending a syscall ran or consuming stale errno.
+    //! returning false if ENOMEM were compared with the raw return value.
+    //! Evidence-side SentinelErrnoControl#unavailableSentinelDoesNotReadErrno uses a proxy to check
+    //! false, one missing-symbol attempt, no raw syscall and zero errno reads for stale 0/EINVAL/ENOSYS.
+    //! Reading stale errno for the unavailable sentinel could change its false result or throw.
     private boolean handleMlockResult(int result, String msg) {
         if (result == 0)
             return true;
