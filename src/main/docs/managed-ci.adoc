@@ -22,6 +22,8 @@ Surefire reports are separated under each module's `target/ci-reports/surefire/<
 
 The selected allocation was measured on native Linux with Java 21 and unchanged declared dependencies. Other JDKs, operating systems, explicit Snapshot profiles, targeted `-Dtest` and `test-serial` routes need their own qualification before activation. Use the complete command above for this trial. No retries are introduced.
 
+Inherit the source attachment from Java parent 2026.1. A child jar goal merges with the parent jar-no-fork goal and would attach the same source artifact twice.
+
 == Retiring protected exceptions
 
 Fix demonstrated shared-state/resource hazards one test at a time; qualify never-tested exceptions without presuming a defect. Move only the proved-safe class into the ordinary batch, preserve assertions and full inventories, and require repeated concurrent PR and aggregate evidence. Global isolation can be removed only after cross-module interference is resolved.
