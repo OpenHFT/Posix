@@ -31,8 +31,9 @@ store in `PosixAPIHolder.POSIX_API`.
 
 | POSIX-FN-003
 | Deterministic error handling
-| Translate every native failure into a `PosixRuntimeException`;
-expose `lastError()` and `strerror(int)`.
+| Translate unexpected native failures into a `PosixRuntimeException`;
+operations with a documented boolean failure result return `false` for
+their expected errors; expose `lastError()` and `strerror(int)`.
 
 | POSIX-FN-004
 | File-descriptor lifecycle
@@ -44,7 +45,17 @@ expose `lastError()` and `strerror(int)`.
 | Support `mmap`, `munmap`, `madvise`, `msync`, `mlock`, `mlock2`,
 `mlockall`; degrade gracefully on unsupported kernels/VMs; provide
 full flag coverage via `MMapProt`, `MMapFlag`, `MAdviseFlag`,
-`MSyncFlag`, `MclFlag`.
+`MSyncFlag`, `MclFlag`. Memory locking returns `false` for resource,
+permission, transient and unsupported-operation errors; other errors
+raise `PosixRuntimeException` with the saved `errno`. Raw `mlock2`
+syscalls are used only for recognised Linux CPU ABIs. On macOS,
+`mlock2` uses `mlock`, including when on-fault locking is requested.
+`MlockResultTest` checks both routing decisions independently of the
+test host and verifies that unexpected errors preserve the first errno.
+Native success is qualified separately by opting in with
+`-Dposix.mlock.integration=true`; `MlockLocksMemoryTest` records the
+before/after `VmLck` values and requires an increase of at least the
+requested lock length. An ignored native test is not native-success evidence.
 
 | POSIX-FN-006
 | File space pre-allocation
