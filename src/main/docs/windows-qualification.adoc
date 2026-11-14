@@ -13,6 +13,7 @@ https://github.com/OpenHFT/Posix/pull/95[95: mapping/memory],
 https://github.com/OpenHFT/Posix/pull/96[96: allocation/locking/affinity],
 https://github.com/OpenHFT/Posix/pull/97[97: FFM], and qualification
 (CI, direct JNA, benchmarks and this report).
+The qualification PR is https://github.com/OpenHFT/Posix/pull/98[98].
 Branches and commit/PR subjects follow the requested FIX-292 convention.
 
 == Local validation
@@ -20,6 +21,8 @@ Branches and commit/PR subjects follow the requested FIX-292 convention.
 Native Windows x64, 14 November 2026:
 
 * The core builds with actual JDK 8, independently of the FFM source tree.
+Final local core runs on JDK 8/11/17/21/25 each pass 62 tests with eight
+platform skips and no failures/errors.
 * JNR, JNA interface and JNA direct mappings run the same contract suite.
 An executed-method registry checks all 43 public signatures for each provider.
 * The optional artifact compiles with release 22 and passes the same seven
@@ -37,8 +40,10 @@ ownership cleanup on both mapping creation and view creation failures.
 The optional quality profile cannot resolve
 `net.openhft:chronicle-quality-rules:1.27.0-SNAPSHOT` locally. Normal verify
 passing does not imply Checkstyle/SpotBugs passed. CI results must be checked
-separately; Windows ARM64/32-bit are not qualified. Linux/macOS jobs are
-provided for shared enum/helper regressions; no local Unix run was possible.
+separately; Windows ARM64/32-bit are not qualified. The first hosted CI run
+passed Linux, macOS and all Windows core jobs. FFM contract tests also passed;
+the follow-on Java 8 isolation step exposed an unquoted PowerShell Maven
+argument, corrected in the workflow. No local Unix run was possible.
 
 == Exploratory benchmark
 
