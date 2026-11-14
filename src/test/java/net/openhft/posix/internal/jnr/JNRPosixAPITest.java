@@ -221,7 +221,7 @@ public class JNRPosixAPITest {
         assertEquals("1-1", jnr.sched_getaffinity_summary(gettid));
         assertEquals(0, jnr.sched_setaffinity_range(gettid, 2, 3));
         assertEquals("2-3", jnr.sched_getaffinity_summary(gettid));
-        assertEquals(0, jnr.sched_setaffinity_range(gettid, 0, jnr.get_nprocs_conf()));
+        assertEquals(0, jnr.sched_setaffinity_range(gettid, 0, jnr.get_nprocs_conf() - 1));
     }
 
     @Test

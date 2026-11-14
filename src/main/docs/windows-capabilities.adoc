@@ -1,0 +1,42 @@
+= Windows Provider Capabilities (FIX-292)
+:toc:
+:sectnums:
+:source-highlighter: rouge
+
+== Selection and requirements
+
+Windows providers require a 64-bit Windows JVM. The Java 8 core supplies JNR
+(automatic selection) and JNA. Set `chronicle.posix.provider` to `jnr`, `jna`,
+`noop` or `ffm` to request a provider. Explicit requests never silently fall
+back. FFM requires Java 22+ and a separately built optional artifact.
+JNA currently uses interface mapping; no zero-allocation claim is made.
+
+== Implemented contracts
+
+* Binary open/read/write/close, UTF-16 paths, 64-bit seek and truncate.
+* Open flags: read, write, read/write, append, create, truncate, exclusive.
+Unsupported bits return EINVAL. Permission read/write bits map to CRT modes;
+POSIX ownership and ACL semantics are not provided.
+* Seek SET/CUR/END. DATA/HOLE are unavailable. The previously incorrect
+WhenceFlag constants are corrected to native POSIX values; code persisting
+the old numeric enum values must migrate.
+* CRT errno and error strings, off-heap allocation/free, PID/native TID,
+active and maximum Windows logical processor counts across groups.
+* Realtime, monotonic, process CPU and thread CPU clocks. Other clock IDs
+throw IllegalArgumentException. Timeval is two 64-bit fields on this provider.
+
+== Unavailable contracts
+
+Mapping, syncing, allocation, byte-range locking, advice and affinity return
+-1 with CRT ENOSYS (40) until implemented. Page locking returns false with
+ENOSYS. The void mlockall method retains its historical no-op for compatibility
+and sets ENOSYS: it does not lock pages. Disk usage throws IOException.
+
+== Test obligations
+
+WindowsContractTest runs the same assertions against each advertised binding.
+An invocation registry requires every one of the 43 PosixAPI signatures to
+execute, including overloads, static selection and unavailable calls.
+WindowsBoundaryTest checks large transfer capping without huge allocation
+and affinity masks across CPU indexes 31/32/63/64/128 with buffer canaries.
+Raw pointer validity remains the caller's responsibility.

@@ -7,6 +7,7 @@ import jnr.ffi.Platform;
 import net.openhft.posix.PosixAPI;
 import net.openhft.posix.internal.jnr.JNRPosixAPI;
 import net.openhft.posix.internal.jnr.WinJNRPosixAPI;
+import net.openhft.posix.internal.jna.WinJNAPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
 /**
@@ -28,6 +29,31 @@ public class PosixAPIHolder {
     public static synchronized void loadPosixApi() {
         if (POSIX_API != null)
             return;
+
+        String requested = System.getProperty("chronicle.posix.provider", "auto");
+        if (!"auto".equals(requested)) {
+            if ("noop".equals(requested)) {
+                useNoOpPosixApi();
+                return;
+            }
+            if ("jnr".equals(requested)) {
+                POSIX_API = Platform.getNativePlatform().isUnix() ? new JNRPosixAPI() : new WinJNRPosixAPI();
+            } else if ("jna".equals(requested)) {
+                POSIX_API = new WinJNAPosixAPI();
+            } else if ("ffm".equals(requested)) {
+                String version = System.getProperty("java.specification.version");
+                if (version.startsWith("1.") || Integer.parseInt(version) < 22)
+                    throw new UnsupportedOperationException("FFM requires Java 22+ and the optional posix-ffm artifact");
+                try {
+                    POSIX_API = (PosixAPI) Class.forName("net.openhft.posix.ffm.WinFFMPosixAPI").getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException("Cannot load requested FFM provider; add posix-ffm and enable native access", e);
+                }
+            } else {
+                throw new IllegalArgumentException("Unknown POSIX provider: " + requested);
+            }
+            return;
+        }
 
         PosixAPI posixAPI;
         try {
