@@ -24,12 +24,23 @@ the old numeric enum values must migrate.
 active and maximum Windows logical processor counts across groups.
 * Realtime, monotonic, process CPU and thread CPU clocks. Other clock IDs
 throw IllegalArgumentException. Timeval is two 64-bit fields on this provider.
+* File-backed shared and private/copy-on-write mappings, read or read/write
+protection, allocation-granularity-aligned offsets and complete-view unmap.
+Mappings must fit inside the existing file. Address hints/fixed mappings,
+anonymous mappings, other protection modes and partial unmaps are unavailable.
+* MS_SYNC flushes the view and, for writable shared views, its duplicated file
+handle. Closing the original descriptor does not invalidate the view. MS_ASYNC
+and MS_INVALIDATE are unavailable. Callers must unmap every successful view.
+* MADV_WILLNEED uses PrefetchVirtualMemory where exported by Windows (8+).
+Other advice modes are unavailable. VirtualLock supports mlock and
+mlock2(false), subject to OS quotas. Unmapping releases locked mapped pages;
+the public API has no munlock operation. mlock2(true) is unavailable.
 
 == Unavailable contracts
 
-Mapping, syncing, allocation, byte-range locking, advice and affinity return
--1 with CRT ENOSYS (40) until implemented. Page locking returns false with
-ENOSYS. The void mlockall method retains its historical no-op for compatibility
+Allocation, byte-range locking and affinity return -1 with CRT ENOSYS (40)
+until implemented. Unsupported memory modes also report ENOSYS. The void
+mlockall method retains its historical no-op for compatibility
 and sets ENOSYS: it does not lock pages. Disk usage throws IOException.
 
 == Test obligations

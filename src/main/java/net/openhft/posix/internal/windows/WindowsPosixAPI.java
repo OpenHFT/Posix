@@ -6,6 +6,8 @@ package net.openhft.posix.internal.windows;
 import net.openhft.posix.PosixAPI;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 
 /** Shared Windows x64 contracts. Addresses must reference valid caller-owned memory.
@@ -13,6 +15,14 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 public class WindowsPosixAPI implements PosixAPI {
     protected static final int EINVAL = 22, EBADF = 9, ENOSYS = 40;
     protected final WindowsNative nativeApi;
+    private final Map<Long, View> views = new HashMap<>();
+    private static final class View {
+        final long length, file;
+        final boolean writableShared;
+        View(long length, long file, boolean writableShared) {
+            this.length = length; this.file = file; this.writableShared = writableShared;
+        }
+    }
     public WindowsPosixAPI(WindowsNative nativeApi) {
         if (!System.getProperty("os.name", "").startsWith("Windows") || UNSAFE.addressSize() != 8)
             throw new UnsupportedOperationException("Windows providers require a 64-bit Windows JVM");
@@ -111,12 +121,82 @@ public class WindowsPosixAPI implements PosixAPI {
     }
     @Override public int fallocate(int fd, int mode, long offset, long length) { return fail(ENOSYS); }
     @Override public int lockf(int fd, int cmd, long length) { return fail(ENOSYS); }
-    @Override public long mmap(long addr, long length, int prot, int flags, int fd, long offset) { return fail(ENOSYS); }
-    @Override public int munmap(long addr, long length) { return fail(ENOSYS); }
-    @Override public int msync(long addr, long length, int flags) { return fail(ENOSYS); }
-    @Override public int madvise(long addr, long length, int advice) { return fail(ENOSYS); }
-    @Override public boolean mlock(long addr, long length) { fail(ENOSYS); return false; }
-    @Override public boolean mlock2(long addr, long length, boolean onFault) { fail(ENOSYS); return false; }
+    @Override public synchronized long mmap(long addr, long length, int prot, int flags, int fd, long offset) {
+        if (addr != 0) return fail(ENOSYS);
+        if (length <= 0 || offset < 0 || offset > Long.MAX_VALUE - length) return fail(EINVAL);
+        if ((prot != 1 && prot != 3) || (flags != 1 && flags != 2)) return fail(ENOSYS);
+        long file = nativeApi._get_osfhandle(fd);
+        if (file == -1) return -1;
+        long scratch = malloc(48), duplicate = 0, mapping = 0, view = 0;
+        try {
+            nativeApi.GetSystemInfo(scratch);
+            long granularity = UNSAFE.getInt(scratch + 40) & 0xffffffffL;
+            if (granularity == 0 || offset % granularity != 0) return fail(EINVAL);
+            if (nativeApi.GetFileSizeEx(file, scratch) == 0) return winFail();
+            if (offset + length > UNSAFE.getLong(scratch)) return fail(EINVAL);
+            long process = nativeApi.GetCurrentProcess();
+            if (nativeApi.DuplicateHandle(process, file, process, scratch, 0, 0, 2) == 0) return winFail();
+            duplicate = UNSAFE.getLong(scratch);
+            boolean writable = prot == 3;
+            boolean shared = flags == 1;
+            int protection = writable ? (shared ? 4 : 8) : 2;
+            int access = writable ? (shared ? 6 : 1) : 4;
+            mapping = nativeApi.CreateFileMappingW(duplicate, 0, protection, 0, 0, 0);
+            if (mapping == 0) return winFail();
+            view = nativeApi.MapViewOfFile(mapping, access, (int) (offset >>> 32), (int) offset, length);
+            if (view == 0) return winFail();
+            views.put(view, new View(length, duplicate, writable && shared));
+            long result = view;
+            duplicate = 0; view = 0;
+            return result;
+        } finally {
+            if (view != 0) nativeApi.UnmapViewOfFile(view);
+            if (mapping != 0) nativeApi.CloseHandle(mapping);
+            if (duplicate != 0) nativeApi.CloseHandle(duplicate);
+            free(scratch);
+        }
+    }
+    @Override public synchronized int munmap(long addr, long length) {
+        View view = views.get(addr);
+        if (view == null || view.length != length) return fail(EINVAL);
+        if (nativeApi.UnmapViewOfFile(addr) == 0) return winFail();
+        views.remove(addr);
+        return nativeApi.CloseHandle(view.file) != 0 ? 0 : winFail();
+    }
+    @Override public synchronized int msync(long addr, long length, int flags) {
+        if (flags != 4) return fail(ENOSYS);
+        if (length <= 0 || addr <= 0 || addr > Long.MAX_VALUE - length) return fail(EINVAL);
+        for (Map.Entry<Long, View> entry : views.entrySet()) {
+            long start = entry.getKey();
+            View view = entry.getValue();
+            if (addr >= start && addr - start <= view.length && length <= view.length - (addr - start)) {
+                if (nativeApi.FlushViewOfFile(addr, length) == 0) return winFail();
+                if (view.writableShared && nativeApi.FlushFileBuffers(view.file) == 0) return winFail();
+                return 0;
+            }
+        }
+        return fail(EINVAL);
+    }
+    @Override public int madvise(long addr, long length, int advice) {
+        if (advice != 3) return fail(ENOSYS);
+        if (addr == 0 || length <= 0) return fail(EINVAL);
+        long range = malloc(16);
+        try {
+            UNSAFE.putLong(range, addr); UNSAFE.putLong(range + 8, length);
+            try {
+                return nativeApi.PrefetchVirtualMemory(nativeApi.GetCurrentProcess(), 1, range, 0) != 0 ? 0 : winFail();
+            } catch (UnsatisfiedLinkError unsupported) { return fail(ENOSYS); }
+        } finally { free(range); }
+    }
+    @Override public boolean mlock(long addr, long length) {
+        if (addr == 0 || length <= 0) { fail(EINVAL); return false; }
+        if (nativeApi.VirtualLock(addr, length) != 0) return true;
+        winFail(); return false;
+    }
+    @Override public boolean mlock2(long addr, long length, boolean onFault) {
+        if (!onFault) return mlock(addr, length);
+        fail(ENOSYS); return false;
+    }
     @Override public void mlockall(int flags) { fail(ENOSYS); }
     @Override public int sched_setaffinity(int pid, int size, long mask) { return fail(ENOSYS); }
     @Override public int sched_getaffinity(int pid, int size, long mask) { return fail(ENOSYS); }
