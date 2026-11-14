@@ -19,10 +19,8 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
  * <li>{@link #madvise(long, long, int)}</li>
  * <li>{@link #msync(long, long, int)}</li>
  * <li>{@link #fallocate(int, int, long, long)}</li>
- * <li>{@link #ftruncate(int, long)}</li>
  * <li>{@link #mmap(long, long, int, int, int, long)}</li>
  * <li>{@link #munmap(long, long)}</li>
- * <li>{@link #gettimeofday(long)}</li>
  * </ul>
  */
 public final class WinJNRPosixAPI implements PosixAPI {
@@ -31,6 +29,8 @@ public final class WinJNRPosixAPI implements PosixAPI {
     static final jnr.ffi.Runtime RUNTIME = FFIProvider.getSystemProvider().getRuntime();
     static final Platform NATIVE_PLATFORM = Platform.getNativePlatform();
     static final String STANDARD_C_LIBRARY_NAME = NATIVE_PLATFORM.getStandardCLibraryName();
+    private static final int O_BINARY = 0x8000;
+    private static final int EINVAL = 22;
 
     // JNR interface for Windows POSIX functions
     private final WinJNRPosixInterface jnr;
@@ -48,7 +48,8 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public int open(CharSequence path, int flags, int perm) {
-        return jnr._open(path, flags, perm);
+        // POSIX byte streams must not translate LF/CRLF or treat Ctrl-Z as EOF.
+        return jnr._open(path, flags | O_BINARY, perm);
     }
 
     @Override
@@ -63,12 +64,16 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public long read(int fd, long dst, long len) {
-        return jnr._read(fd, dst, len);
+        if (len < 0)
+            return fail(EINVAL);
+        return jnr._read(fd, dst, Math.min(len, Integer.MAX_VALUE));
     }
 
     @Override
     public long write(int fd, long src, long len) {
-        return jnr._write(fd, src, len);
+        if (len < 0)
+            return fail(EINVAL);
+        return jnr._write(fd, src, Math.min(len, Integer.MAX_VALUE));
     }
 
     @Override
@@ -128,7 +133,10 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public int ftruncate(int fd, long offset) {
-        return 0;
+        if (offset < 0)
+            return fail(EINVAL);
+        int error = jnr._chsize_s(fd, offset);
+        return error == 0 ? 0 : fail(error);
     }
 
     @Override
@@ -161,7 +169,13 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public int lastError() {
-        return RUNTIME.getLastError();
+        // CRT errno is distinct from the Win32 GetLastError value saved by JNR.
+        return jnr._errno().getInt(0);
+    }
+
+    private int fail(int error) {
+        jnr._errno().putInt(0, error);
+        return -1;
     }
 
     @Override

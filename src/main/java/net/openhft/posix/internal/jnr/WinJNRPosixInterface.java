@@ -3,13 +3,20 @@
  */
 package net.openhft.posix.internal.jnr;
 
+import jnr.ffi.annotations.LongLong;
+import jnr.ffi.types.uintptr_t;
+import jnr.ffi.types.int32_t;
+import jnr.ffi.types.size_t;
+import jnr.ffi.types.u_int32_t;
+
 /**
  * Native bindings for selected POSIX functions on Windows.
  */
 public interface WinJNRPosixInterface {
     //CHECKSTYLE:OFF MethodName
-    // SetFilePointer
-    // int ftruncate(int fd, long offset);
+    int _chsize_s(int fd, @LongLong long size);
+
+    jnr.ffi.Pointer _errno();
 
     /**
      * Allocates memory of a specified size.
@@ -18,7 +25,7 @@ public interface WinJNRPosixInterface {
      * @return The address of the allocated block.
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc">malloc</a>
      */
-    long malloc(long size);
+    @uintptr_t long malloc(@size_t long size);
 
     /**
      * Releases memory previously allocated with {@link #malloc(long)}.
@@ -26,7 +33,7 @@ public interface WinJNRPosixInterface {
      * @param ptr The address returned by {@link #malloc(long)}.
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/free">free</a>
      */
-    void free(long ptr);
+    void free(@uintptr_t long ptr);
 
     /**
      * Closes a file descriptor.
@@ -57,7 +64,7 @@ public interface WinJNRPosixInterface {
      * @return The new file pointer.
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/lseeki64">_lseeki64</a>
      */
-    long _lseeki64(int fd, long offset, int origin);
+    @LongLong long _lseeki64(int fd, @LongLong long offset, int origin);
 
     /**
      * Reads from a file descriptor.
@@ -68,7 +75,7 @@ public interface WinJNRPosixInterface {
      * @return The number of bytes read.
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/read">_read</a>
      */
-    long _read(int fd, long dst, long len);
+    @int32_t long _read(int fd, @uintptr_t long dst, @u_int32_t long len);
 
     /**
      * Writes to a file descriptor.
@@ -79,7 +86,7 @@ public interface WinJNRPosixInterface {
      * @return The number of bytes written.
      * @see <a href="https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/write">_write</a>
      */
-    long _write(int fd, long src, long len);
+    @int32_t long _write(int fd, @uintptr_t long src, @u_int32_t long len);
 
     /**
      * Returns the identifier of the current process.

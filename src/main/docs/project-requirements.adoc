@@ -82,4 +82,12 @@ pure functions, safe in static initialisers.
 | Command-line diagnostics
 | Provide `BenchmarkMain` executable exercising mmap/lock/sync loops and
 printing a latency histogram; exit 0 when all checks pass.
+
+| POSIX-TEST-013
+| Windows native file-I/O regression coverage
+| On Windows, verify byte-exact binary read/write including LF, CRLF and Ctrl-Z,
+EOF and zero-length writes, seeks beyond 4 GiB, truncation/extension with
+unchanged position, read-only and invalid descriptors, negative lengths,
+and thread-local CRT errno. See `WinJNRPosixAPITest` and
+link:windows-support.adoc[Windows support and coverage assessment].
 |===
