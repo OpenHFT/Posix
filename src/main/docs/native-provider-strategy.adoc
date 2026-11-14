@@ -10,12 +10,14 @@ Keep `posix` source and its normal build compatible with JDK 8. Develop an
 optional, separate `posix-ffm` artifact for Java 22+ using the final Foreign
 Function and Memory API (Project Panama). Java 8-21 continues to use JNR or
 JNA. Do not require Java 21 preview features. Agreement recorded 14 November
-2026. This document specifies planned work; no FFM provider is implemented yet.
+2026. The optional FFM provider and both JNA mappings are now implemented;
+see windows-qualification.adoc for current results. The design rationale
+below retains the original trade-offs.
 
 == Current implementation and local evidence
 
-The repository currently selects JNR on Unix and WinJNR on other platforms,
-falling back to NoOp on load failure. It does not select JNA. `JNAPosixAPI`
+Before FIX-292 the repository selected JNR on Unix and WinJNR on other platforms,
+falling back to NoOp on load failure. It did not select JNA. `JNAPosixAPI`
 is abstract with only an mmap implementation; `RawPosixAPI` is an empty
 abstract base. Documentation must not advertise these as working providers.
 

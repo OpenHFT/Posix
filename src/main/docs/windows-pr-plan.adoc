@@ -6,14 +6,23 @@
 
 == Outcome and status
 
+Implementation update (FIX-292, 14 November 2026): the plan below is the
+original breakdown. Work has been consolidated into six stacked PRs:
+https://github.com/OpenHFT/Posix/pull/93[file I/O],
+https://github.com/OpenHFT/Posix/pull/94[shared contracts and JNA],
+https://github.com/OpenHFT/Posix/pull/95[mappings and page operations],
+https://github.com/OpenHFT/Posix/pull/96[allocation, locks and affinity],
+https://github.com/OpenHFT/Posix/pull/97[optional FFM], and the qualification
+branch (CI, JNA direct mapping, benchmarks and documentation).
+See link:windows-qualification.adoc[current validation and remaining limits].
+
 Every one of the 43 declared `PosixAPI` signatures, including static methods
 and default overloads, must have an explicit behavioural test. Every Windows
 operation must either work for a documented subset or explicitly report that
 it is unavailable. Unsupported behaviour is tested, not skipped.
 
-This is an implementation plan, not a claim that all 43 signatures are tested
-today. PR 1 has a local candidate on `codex/windows-posix-file-io`; the other
-PRs are planned. No PR has been published. See
+The shared contract now executes all 43 signatures for each Windows binding.
+This does not mean every edge case below has been qualified. See
 link:windows-support.adoc[observations and remaining defects].
 
 The Java 8 compilation requirement is mandatory. The agreed provider design

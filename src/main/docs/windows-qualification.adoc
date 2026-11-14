@@ -1,0 +1,99 @@
+= Windows Qualification - FIX-292
+:toc:
+:sectnums:
+:source-highlighter: rouge
+:lang: en-GB
+
+== Implemented series
+
+The original plan was consolidated into stacked draft PRs:
+https://github.com/OpenHFT/Posix/pull/93[93: file I/O],
+https://github.com/OpenHFT/Posix/pull/94[94: shared contracts/JNA],
+https://github.com/OpenHFT/Posix/pull/95[95: mapping/memory],
+https://github.com/OpenHFT/Posix/pull/96[96: allocation/locking/affinity],
+https://github.com/OpenHFT/Posix/pull/97[97: FFM], and qualification
+(CI, direct JNA, benchmarks and this report).
+Branches and commit/PR subjects follow the requested FIX-292 convention.
+
+== Local validation
+
+Native Windows x64, 14 November 2026:
+
+* The core builds with actual JDK 8, independently of the FFM source tree.
+* JNR, JNA interface and JNA direct mappings run the same contract suite.
+An executed-method registry checks all 43 public signatures for each provider.
+* The optional artifact compiles with release 22 and passes the same seven
+contract scenarios on actual Temurin 22.0.2 and Zulu 25.
+* JDK 8/11/17/21 select JNR normally with the FFM jar present, and reject an
+explicit FFM request before loading Java 22 classes.
+* Bytecode checked: core major 52, FFM major 66.
+* Native assertions cover Unicode paths, byte contents, EOF, large seeks,
+truncate/allocate effects, synchronous shared mapping persistence, private
+copy isolation, closing mapped descriptors, errors, clocks, thread identity,
+cross-process locks and restoring worker-thread affinity.
+* Boundary tests cover INT_MAX transfer capping, affinity mask canaries and
+ownership cleanup on both mapping creation and view creation failures.
+
+The optional quality profile cannot resolve
+`net.openhft:chronicle-quality-rules:1.27.0-SNAPSHOT` locally. Normal verify
+passing does not imply Checkstyle/SpotBugs passed. CI results must be checked
+separately; Windows ARM64/32-bit are not qualified. Linux/macOS jobs are
+provided for shared enum/helper regressions; no local Unix run was possible.
+
+== Exploratory benchmark
+
+JMH 1.37, Temurin 22.0.2, native Windows x64, one fork and one worker,
+two one-second warmups, three one-second measurements, average-time mode,
+GC profiler. JNA 5.5.0 and JNR-FFI 2.2.15 are the resolved project versions.
+Direct JNA was measured in a separate invocation with the same settings.
+This was a short desktop run, not an isolated production latency study.
+
+[cols="2,1,1,1,1",options="header"]
+|===
+| Operation (mean ns/op) | JNR | JNA interface | JNA direct | FFM
+| Thread ID | 20.36 | 52.40 | 38.05 | 8.83
+| Realtime clock | 65.03 | 191.68 | 81.81 | 44.68
+| Seek + 8-byte read | 1823.48 | 2459.95 | 2365.67 | 1573.68
+|===
+
+[cols="2,1,1,1,1",options="header"]
+|===
+| Heap allocation (B/op) | JNR | JNA interface | JNA direct | FFM
+| Thread ID | 16 | 32 | below 0.001 | below 0.001
+| Realtime clock | 24 | 72 | 24 | 0.001
+| Seek + 8-byte read | 80 | 152 | 24 | 0.032
+|===
+
+Allocation excludes native allocation. In particular, the realtime helper
+uses a native scratch buffer. FFM's near-zero heap rates are observations,
+not an unconditional zero-allocation guarantee. The IO score confidence
+intervals were broad; these runs do not establish a production performance
+ranking. JNR remains the default; alternatives remain explicit selections.
+
+The benchmark source also covers larger reads, writes, map/unmap and flush.
+See link:../../../benchmarks/README.adoc[benchmark commands].
+Longer multi-fork, concurrent, cold-start and tail-latency qualification is
+still required before changing defaults or making performance guarantees.
+
+== Supported subset and remaining work
+
+See link:windows-capabilities.adoc[the exact implemented and unavailable modes].
+All methods have tests, but this is not exhaustive branch, filesystem or
+hardware coverage. In particular:
+
+* Disk-full, network filesystems, compressed/sparse allocation edge cases,
+process termination durability and filesystem-specific locking need dedicated
+fixtures. Error conversion and mapping ownership have controlled failure tests.
+* Protection faults and arbitrary invalid-pointer dereferences are not executed
+in the main test JVM. Caller-provided addresses remain unsafe.
+* Multi-group affinity, anonymous/fixed mappings, partial unmapping,
+asynchronous/invalidate sync, lock-on-fault and advanced allocation modes are
+explicitly unavailable, not silently approximated.
+* The legacy void mlockall remains a documented unavailable no-op for backwards
+compatibility and sets ENOSYS. A future exception-based contract needs a
+consumer migration review.
+* Provider selection is explicit for alternatives. A JNA/FFM provider does not
+borrow CRT descriptors from another runtime or replace a live provider mid-I/O.
+* Shared Windows operations allocate for paths, mapping ownership and some
+native structures. Existing zero-GC marketing text has been corrected.
+

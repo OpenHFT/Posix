@@ -11,6 +11,7 @@ public class WindowsLockChild {
     public static void main(String[] args) throws Exception {
         PosixAPI api = "jnr".equals(args[0]) ? new WinJNRPosixAPI()
                 : "jna".equals(args[0]) ? new WinJNAPosixAPI()
+                : "jna-direct".equals(args[0]) ? new net.openhft.posix.internal.jna.WinJNADirectPosixAPI()
                 : (PosixAPI) Class.forName("net.openhft.posix.ffm.WinFFMPosixAPI").getDeclaredConstructor().newInstance();
         int fd = api.open(args[1], OpenFlag.O_RDWR, 0600);
         if (fd < 0) throw new AssertionError(api.lastErrorStr());

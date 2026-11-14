@@ -1,0 +1,27 @@
+= Windows Provider Benchmarks
+:toc:
+:sectnums:
+:source-highlighter: rouge
+
+This independent JMH module does not participate in the Java 8 core build.
+Build/install the core with JDK 8, then use JDK 22+:
+
+[source,shell]
+----
+mvn -B -f posix-ffm/pom.xml install
+mvn -B -f benchmarks/pom.xml clean package
+java --enable-native-access=ALL-UNNAMED -jar benchmarks/target/benchmarks.jar -prof gc -rf json -rff results.json -jvmArgsAppend --enable-native-access=ALL-UNNAMED
+----
+
+Providers: jnr, jna, jna-direct, ffm. Use `-p provider=jna-direct` to
+restrict a run. Default annotations provide a short exploratory run; use
+`-f 3 -wi 5 -i 10 -w 2s -r 2s` for longer measurements and `-bm sample`
+to collect a sampled latency distribution. Use separate `-t 4` runs for
+concurrency. These are warm steady-state benchmarks, not cold-start tests.
+
+The benchmark checks setup and cleans temporary mappings, descriptors,
+native buffers and files. Small/large IO includes a seek. Flush benchmarks
+measure flushing a mapped view, not power-loss durability.
+Results and their limitations are in
+link:../src/main/docs/windows-qualification.adoc[the qualification report].
+
