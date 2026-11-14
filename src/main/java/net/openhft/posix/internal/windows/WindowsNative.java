@@ -43,6 +43,7 @@ public interface WindowsNative {
     int GetThreadGroupAffinity(long a0, long a1);
     int SetThreadGroupAffinity(long a0, long a1, long a2);
     int winError();
+    int GetFileInformationByHandleEx(long handle, int type, long info, int length);
     //CHECKSTYLE:ON MethodName
 }
 

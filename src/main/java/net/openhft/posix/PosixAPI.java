@@ -312,7 +312,7 @@ public interface PosixAPI {
      * and reads its output. Thread-safe as it performs no shared mutations.
      *
      * @param filename path to inspect
-     * @return usage in bytes
+     * @return allocated usage in KiB (matching the existing du output convention)
      * @throws IOException if the child process fails
      */
     default long du(String filename) throws IOException {

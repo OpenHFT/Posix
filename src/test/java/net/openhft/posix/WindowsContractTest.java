@@ -164,7 +164,7 @@ public class WindowsContractTest {
         assertEquals(9, api.lastError());
     }
     @Test public void explicitUnavailable() throws Exception {
-        assertEquals(-1, api.fallocate(-1, 0, 0, 4096)); assertEquals(40, api.lastError());
+        assertEquals(-1, api.fallocate(-1, 1, 0, 4096)); assertEquals(40, api.lastError());
         assertEquals(-1, api.lockf(-1, 3, 1));
         assertEquals(-1, api.mmap(0, 4096, 3, 1, -1, 0));
         assertEquals(-1, api.mmap(0, 4096, MMapProt.PROT_READ, MMapFlag.SHARED, -1, 0));
@@ -178,14 +178,15 @@ public class WindowsContractTest {
         api.mlockall(MclFlag.MclCurrent); assertEquals(40, api.lastError());
         long mask = api.malloc(128);
         try {
-            assertEquals(-1, api.sched_getaffinity(0, 128, mask));
-            assertEquals(-1, api.sched_setaffinity(0, 128, mask));
-            assertEquals(-1, api.sched_setaffinity_as(0, 0));
-            assertEquals(-1, api.sched_setaffinity_range(0, 0, 0));
-            assertEquals("na: 40", api.sched_getaffinity_summary(0));
+            UNSAFE.setMemory(mask, 128, (byte) 0);
+            assertEquals(-1, api.sched_getaffinity(-1, 128, mask));
+            assertEquals(-1, api.sched_setaffinity(-1, 128, mask));
+            assertEquals(-1, api.sched_setaffinity_as(-1, 0));
+            assertEquals(-1, api.sched_setaffinity_range(-1, 0, 0));
+            assertTrue(api.sched_getaffinity_summary(-1).startsWith("na: "));
         } finally { api.free(mask); }
         try { api.du("missing-file"); fail("du unexpectedly available"); }
-        catch (IOException expected) { assertTrue(expected.getMessage().contains("not available")); }
+        catch (IOException expected) { assertFalse(expected.getMessage().isEmpty()); }
     }
 
     @Test public void mappingsPersistAndPrivateCopiesDoNot() throws Exception {
@@ -219,6 +220,75 @@ public class WindowsContractTest {
             if (view != -1 && view != 0) api.munmap(view, 4096);
             if (fd >= 0) api.close(fd);
             Files.deleteIfExists(file);
+        }
+    }
+
+    @Test public void allocationLocksAndAffinity() throws Exception {
+        Path file = Files.createTempFile("posix-allocation", ".dat");
+        int fd = api.open(file.toString(), OpenFlag.O_RDWR, 0600);
+        try {
+            assertEquals(7, api.lseek(fd, 7, 0));
+            assertEquals(0, api.fallocate(fd, 0, 0, 65536));
+            assertEquals(65536, Files.size(file));
+            assertEquals(7, api.lseek(fd, 0, 1));
+            assertTrue(api.du(file.toString()) >= 64);
+            assertArrayEquals(new byte[65536], Files.readAllBytes(file));
+            assertEquals(-1, api.fallocate(fd, 0, Long.MAX_VALUE, 2));
+            assertEquals(0, api.lockf(fd, 2, 32));
+            assertEquals(0, api.lockf(fd, 0, 32));
+            assertEquals(0, api.lockf(fd, 1, 32));
+            assertEquals(0, api.lockf(fd, 0, 32));
+            assertEquals(7, api.lseek(fd, 0, 1));
+        } finally { api.close(fd); Files.deleteIfExists(file); }
+        FutureTask<Boolean> affinityTask = new FutureTask<>(() -> {
+            PosixAPI worker = create(provider);
+            long original = worker.malloc(16), current = worker.malloc(16);
+            boolean captured = false;
+            try {
+                if (worker.get_nprocs_conf() > 64) {
+                    assertEquals(-1, worker.sched_getaffinity(0, 16, original));
+                    assertEquals(40, worker.lastError()); return true;
+                }
+                assertEquals(0, worker.sched_getaffinity(0, 16, original)); captured = true;
+                int cpu = Long.numberOfTrailingZeros(UNSAFE.getLong(original));
+                assertEquals(0, worker.sched_setaffinity_as(0, cpu));
+                assertEquals(0, worker.sched_getaffinity(0, 16, current));
+                assertEquals(1L << cpu, UNSAFE.getLong(current));
+                return true;
+            } finally {
+                if (captured) assertEquals(0, worker.sched_setaffinity(0, 16, original));
+                worker.free(original); worker.free(current);
+            }
+        });
+        Thread thread = new Thread(affinityTask); thread.start();
+        assertTrue(affinityTask.get(10, TimeUnit.SECONDS)); thread.join(1000);
+    }
+
+    @Test public void locksContendAcrossProcesses() throws Exception {
+        Path file = Files.createTempFile("posix-lock", ".dat");
+        int fd = api.open(file.toString(), OpenFlag.O_RDWR, 0600);
+        try {
+            assertEquals(0, api.ftruncate(fd, 4096));
+            assertEquals(0, api.lockf(fd, 2, 32));
+            lockChild(file, "blocked");
+            assertEquals(0, api.lockf(fd, 0, 32));
+            lockChild(file, "available");
+        } finally { api.close(fd); Files.deleteIfExists(file); }
+    }
+    private void lockChild(Path file, String expected) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(System.getProperty("java.home") + "/bin/java");
+        if ("ffm".equals(provider)) command.add("--enable-native-access=ALL-UNNAMED");
+        command.add("-cp"); command.add(System.getProperty("java.class.path"));
+        command.add(WindowsLockChild.class.getName());
+        command.add(provider); command.add(file.toString()); command.add(expected);
+        Path output = Files.createTempFile("posix-child", ".log");
+        Process child = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile()).start();
+        try {
+            assertTrue("Lock child timed out", child.waitFor(20, TimeUnit.SECONDS));
+            assertEquals(new String(Files.readAllBytes(output), java.nio.charset.StandardCharsets.UTF_8), 0, child.exitValue());
+        } finally {
+            child.destroyForcibly(); child.waitFor(5, TimeUnit.SECONDS); Files.deleteIfExists(output);
         }
     }
 }

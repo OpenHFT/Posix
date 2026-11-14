@@ -23,6 +23,7 @@ public final class WindowsJNANative implements WindowsNative {
         Pointer _get_osfhandle(int a0);
     }
     public interface Kernel extends Library {
+        int GetFileInformationByHandleEx(Pointer handle, int type, Pointer info, int length);
         int GetCurrentThreadId();
         int GetActiveProcessorCount(int a0);
         int GetMaximumProcessorCount(int a0);
@@ -89,5 +90,8 @@ public final class WindowsJNANative implements WindowsNative {
     @Override public int GetThreadGroupAffinity(long a0, long a1) { return k.GetThreadGroupAffinity(new Pointer(a0), new Pointer(a1)); }
     @Override public int SetThreadGroupAffinity(long a0, long a1, long a2) { return k.SetThreadGroupAffinity(new Pointer(a0), new Pointer(a1), new Pointer(a2)); }
     @Override public int winError() { return Native.getLastError(); }
+    @Override public int GetFileInformationByHandleEx(long handle, int type, long info, int length) {
+        return k.GetFileInformationByHandleEx(new Pointer(handle), type, new Pointer(info), length);
+    }
 }
 

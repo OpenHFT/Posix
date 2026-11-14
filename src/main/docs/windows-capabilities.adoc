@@ -38,10 +38,26 @@ the public API has no munlock operation. mlock2(true) is unavailable.
 
 == Unavailable contracts
 
-Allocation, byte-range locking and affinity return -1 with CRT ENOSYS (40)
-until implemented. Unsupported memory modes also report ENOSYS. The void
+Mode-zero fallocate reserves allocation and extends EOF without changing
+the file position; other modes (punch-hole, keep-size, etc.) are unavailable.
+Callers must serialise operations that concurrently resize the same file.
+Disk usage supports individual files and returns allocated KiB, preserving
+the facade's historical du convention; it does not recursively count directories.
+
+Byte-range locking supports F_LOCK/F_TLOCK/F_ULOCK for positive lengths
+relative to the current offset. Windows locks are mandatory for ordinary
+file I/O, unlike POSIX advisory locks. F_TEST, backwards ranges and zero-length
+to-EOF locking are unavailable. Cross-process contention is tested in bounded
+child JVMs.
+
+Affinity accepts zero for the current thread or a native thread ID. It
+supports a single processor group (up to 64 configured logical CPUs), rejects
+other topologies with ENOSYS, and does not treat the argument as a process ID.
+The integration test changes only a worker thread and restores its mask.
+
+Unsupported modes report -1 with CRT ENOSYS (40). The void
 mlockall method retains its historical no-op for compatibility
-and sets ENOSYS: it does not lock pages. Disk usage throws IOException.
+and sets ENOSYS: it does not lock pages. Disk usage errors throw IOException.
 
 == Test obligations
 
