@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -85,3 +85,18 @@ jobs:
           name: unix-${{ matrix.os }}
           path: target/surefire-reports
 
+  benchmark-discovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - run: mvn -B clean install
+      - run: mvn -B -f posix-ffm/pom.xml clean install
+      - run: mvn -B -f benchmarks/pom.xml clean package
+      - run: java -jar benchmarks/target/benchmarks.jar -l
+      - run: java -jar benchmarks/target/benchmarks.jar -p provider=unix-jnr -wi 0 -i 1 -r 100ms -f 1 -foe true
