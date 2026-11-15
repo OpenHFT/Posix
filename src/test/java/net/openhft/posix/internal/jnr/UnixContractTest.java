@@ -88,11 +88,19 @@ public class UnixContractTest {
     }
 
     @Test
-    public void lockingUnmappedMemoryReturnsFalse() {
-        assertFalse(api.mlock(0, 1));
+    public void lockingInvalidRangeReturnsFalse() {
+        if (Platform.getNativePlatform().getOS() == Platform.OS.LINUX) {
+            assertFalse(api.mlock(0, 1));
+            assertNotEquals(0, api.lastError());
+        }
+        // Darwin can successfully wire its reserved PAGEZERO region. An address
+        // range that wraps is invalid on both systems, independent of mappings.
+        assertFalse(api.mlock(-1L, 2));
         assertNotEquals(0, api.lastError());
-        assertFalse(api.mlock2(0, 1, true));
+        assertFalse(api.mlock2(-1L, 2, true));
         assertNotEquals(0, api.lastError());
+        if (Platform.getNativePlatform().getOS() != Platform.OS.LINUX)
+            assertEquals(Errno.ENOSYS.intValue(), api.lastError());
     }
 
     @Test
