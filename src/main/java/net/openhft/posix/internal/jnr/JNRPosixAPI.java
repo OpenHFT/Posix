@@ -23,9 +23,8 @@ import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 /**
  * Implementation of {@link PosixAPI} using JNR (Java Native Runtime).
  *
- * <p>Where a JNR binding is absent this class issues raw syscalls using
- * hard-coded numbers chosen for common architectures.  If the kernel does not
- * recognise a number the call gracefully falls back to the available wrapper.</p>
+ * <p>Missing Linux libc bindings use syscall numbers for explicitly supported
+ * architectures. Unknown architectures report ENOSYS rather than issuing a guessed syscall.</p>
  */
 public final class JNRPosixAPI implements PosixAPI {
 
@@ -40,13 +39,9 @@ public final class JNRPosixAPI implements PosixAPI {
     static final int LOCK_EX = 2;
     static final int LOCK_UN = 8;
     static final int MLOCK_ONFAULT = 1;
-    static final int SYS_mlock2; // mlock2 syscall value
-
-    static {
-        // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
-        SYS_mlock2 = Jvm.isArm() ? 390
-                : Jvm.is64bit() ? 325 : 376;
-    }
+    private static final boolean LINUX = NATIVE_PLATFORM.getOS() == Platform.OS.LINUX;
+    static final int SYS_mlock2 = UnixConstants.mlock2Syscall(NATIVE_PLATFORM.getCPU().toString());
+    private volatile boolean mlock2SymbolMissing;
 
     // JNR interface for POSIX functions
     private final JNRPosixInterface jnr;
@@ -67,8 +62,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     /**
      * Determines the appropriate method for getting the thread ID (gettid).
-     * The JNR binding is tried first and, if missing, the raw syscall numbers
-     * 224 or 186 are used.
+     * The libc binding is tried first; Linux has an architecture-specific syscall fallback.
      *
      * @return A supplier for the gettid method.
      */
@@ -79,19 +73,23 @@ public final class JNRPosixAPI implements PosixAPI {
         } catch (UnsatisfiedLinkError expected) {
             // ignored
         }
-        if (UnsafeMemory.IS32BIT)
-            return () -> jnr.syscall(224);
-        return () -> jnr.syscall(186);
+        final int syscall = UnixConstants.gettidSyscall(NATIVE_PLATFORM.getCPU().toString());
+        return LINUX && syscall >= 0 ? () -> jnr.syscall(syscall) : JNRPosixAPI::unsupported;
     }
 
     @Override
     public int open(CharSequence path, int flags, int perm) {
-        return jnr.open(path, flags, perm);
+        int nativeFlags = UnixConstants.openFlags(flags);
+        if (nativeFlags < 0) {
+            RUNTIME.setLastError(Errno.EINVAL.intValue());
+            return -1;
+        }
+        return jnr.open(path, nativeFlags, perm);
     }
 
     @Override
     public long lseek(int fd, long offset, int whence) {
-        return jnr.lseek(fd, offset, whence);
+        return jnr.lseek(fd, offset, UnixConstants.whence(whence, OS.isMacOSX()));
     }
 
     @Override
@@ -130,15 +128,7 @@ public final class JNRPosixAPI implements PosixAPI {
     public long mmap(long addr, long length, int prot, int flags, int fd, long offset) {
 
         final Pointer wrap = addr == 0 ? NULL : Pointer.wrap(RUNTIME, addr);
-        final long mmap = jnr.mmap(wrap, length, prot, flags, fd, offset);
-        if (mmap == 0 || mmap == -1) {
-            final int lastError = RUNTIME.getLastError();
-            for (Errno errno : Errno.values()) {
-                if (errno.intValue() == lastError)
-                    throw new PosixRuntimeException(errno.toString(), lastError);
-            }
-        }
-        return mmap;
+        return jnr.mmap(wrap, length, prot, flags, fd, offset);
     }
 
     /**
@@ -150,42 +140,46 @@ public final class JNRPosixAPI implements PosixAPI {
      * @return The result of the mlock2 system call.
      */
     private int mlock2Native(long addr, long length, boolean lockOnFault) {
-        // Degrade to mlock for all platforms if lockOnFault not set
-        // or always for macOS which doesn't support mlock2 at all
-        if (!lockOnFault || OS.isMacOSX())
+        if (!lockOnFault)
             return jnr.mlock(addr, length);
-
-        // Older glibc versions do not include a wrapper for mlock2, so use syscall for generality
+        if (!LINUX)
+            return unsupported();
+        if (!mlock2SymbolMissing) {
+            try {
+                return jnr.mlock2(addr, length, MLOCK_ONFAULT);
+            } catch (UnsatisfiedLinkError absent) {
+                mlock2SymbolMissing = true;
+            }
+        }
+        if (SYS_mlock2 < 0)
+            return unsupported();
         return jnr.syscall(SYS_mlock2, addr, length, MLOCK_ONFAULT);
+    }
+
+    private static int unsupported() {
+        RUNTIME.setLastError(Errno.ENOSYS.intValue());
+        return -1;
     }
 
     @Override
     public boolean mlock(long addr, long length) {
         if(Jvm.isAzul()) {
             LOGGER.warn("mlock called but ignored for Azul");
-            return true; // no-op on Azul, ignore
+            unsupported();
+            return false;
         }
 
-        int err = jnr.mlock(addr, length);
-        if (err == 0)
-            return true;
-        if (err == Errno.ENOMEM.intValue())
-            return false;
-        throw throwPosixException("mlock length: " + length + " ");
+        return jnr.mlock(addr, length) == 0;
     }
 
     @Override
     public boolean mlock2(long addr, long length, boolean lockOnFault) {
         if(Jvm.isAzul()) {
             LOGGER.warn("mlock2 called but ignored for Azul");
-            return true; // no-op on Azul, ignore
-        }
-        int err = mlock2Native(addr, length, lockOnFault);
-        if (err == 0)
-            return true;
-        if (err == Errno.ENOMEM.intValue())
+            unsupported();
             return false;
-        throw throwPosixException("mlock2 length: " + length + " ");
+        }
+        return mlock2Native(addr, length, lockOnFault) == 0;
     }
 
     @Override
@@ -354,18 +348,12 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public int sched_setaffinity(int pid, int cpusetsize, long mask) {
-        int ret = jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
-        if (ret != 0)
-            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
-        return ret;
+        return jnr.sched_setaffinity(pid, cpusetsize, Pointer.wrap(RUNTIME, mask));
     }
 
     @Override
     public int sched_getaffinity(int pid, int cpusetsize, long mask) {
-        int ret = jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(Runtime.getSystemRuntime(), mask));
-        if (ret != 0)
-            throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
-        return ret;
+        return jnr.sched_getaffinity(pid, cpusetsize, Pointer.wrap(RUNTIME, mask));
     }
 
     @Override
@@ -400,7 +388,7 @@ public final class JNRPosixAPI implements PosixAPI {
                 throw new IllegalArgumentException(lastErrorStr() + ", ret: " + ret);
             if (UnsafeMemory.IS32BIT)
                 return (UNSAFE.getInt(ptr) & 0xFFFFFFFFL) * 1_000_000_000L + UNSAFE.getInt(ptr + 4);
-            return UNSAFE.getLong(ptr) * 1_000_000_000L + UNSAFE.getInt(ptr + 8);
+            return UNSAFE.getLong(ptr) * 1_000_000_000L + UNSAFE.getLong(ptr + 8);
         } finally {
             free(ptr);
         }

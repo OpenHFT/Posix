@@ -19,6 +19,18 @@ restrict a run. Default annotations provide a short exploratory run; use
 to collect a sampled latency distribution. Use separate `-t 4` runs for
 concurrency. These are warm steady-state benchmarks, not cold-start tests.
 
+On Linux, select `-p provider=unix-jnr`; the default parameter list exercises
+Windows providers only. Check discovery and bounded execution before measuring:
+
+[source,shell]
+----
+java -jar benchmarks/target/benchmarks.jar -l
+java --enable-native-access=ALL-UNNAMED -jar benchmarks/target/benchmarks.jar -p provider=unix-jnr -wi 0 -i 1 -r 100ms -f 1 -foe true
+----
+
+Annotation processing is configured explicitly, including on JDK 25. A successful
+package alone does not qualify discovery, execution or performance.
+
 The benchmark checks setup and cleans temporary mappings, descriptors,
 native buffers and files. Small/large IO includes a seek. Flush benchmarks
 measure flushing a mapped view, not power-loss durability.

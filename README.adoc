@@ -75,3 +75,16 @@ dispatch/allocation costs. JNR remains the default; FFM is opt-in.
 The Windows CI matrix covers Java 8, 11, 17, 21 and 25 for the core, plus
 22/25 for FFM. Linux/macOS regression jobs cover shared changes. Only report
 a platform as qualified after the corresponding results pass.
+
+== Unix qualification
+
+The JNR Unix provider translates the public `OpenFlag` values and Darwin seek constants
+at the native boundary. Mapping and affinity failures return their native failure value
+with thread-local errno; memory locking returns false on failure. Unknown Linux syscall
+architectures report ENOSYS. Mapping inode numbers retain unsigned 64-bit bits.
+`du` returns allocated KiB independent of POSIXLY_CORRECT and rejects a failed command.
+
+CI includes native Linux x86_64/AArch64 and macOS Intel/ARM64 JDK 21 jobs, plus JDK 25
+benchmark discovery and a bounded Linux smoke. These jobs are qualification requirements,
+not a claim of local execution on those platforms. Windows ARM64 remains unqualified
+until JNR/JNA native loading and the provider contract suite pass on that runner.

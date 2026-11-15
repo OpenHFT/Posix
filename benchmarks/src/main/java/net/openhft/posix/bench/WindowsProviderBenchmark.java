@@ -18,10 +18,11 @@ public class WindowsProviderBenchmark {
     @Param({"jnr", "jna", "jna-direct", "ffm"}) public String provider;
     private PosixAPI api;
     private Path file;
-    private int fd;
+    private int fd = -1;
     private long buffer, view;
     @Setup public void setup() throws Exception {
-        String type = "ffm".equals(provider) ? "net.openhft.posix.ffm.WinFFMPosixAPI"
+        String type = "unix-jnr".equals(provider) ? "net.openhft.posix.internal.jnr.JNRPosixAPI"
+                : "ffm".equals(provider) ? "net.openhft.posix.ffm.WinFFMPosixAPI"
                 : "jna-direct".equals(provider) ? "net.openhft.posix.internal.jna.WinJNADirectPosixAPI"
                 : "jna".equals(provider) ? "net.openhft.posix.internal.jna.WinJNAPosixAPI"
                 : "net.openhft.posix.internal.jnr.WinJNRPosixAPI";
@@ -35,7 +36,12 @@ public class WindowsProviderBenchmark {
         if (view == 0 || view == -1) throw new IllegalStateException(api.lastErrorStr());
     }
     @TearDown public void cleanup() throws Exception {
-        api.munmap(view, 4096); api.free(buffer); api.close(fd); Files.delete(file);
+        if (api != null) {
+            if (view != 0 && view != -1) api.munmap(view, 4096);
+            if (buffer != 0) api.free(buffer);
+            if (fd >= 0) api.close(fd);
+        }
+        if (file != null) Files.deleteIfExists(file);
     }
     @Benchmark public int threadId() { return api.gettid(); }
     @Benchmark public long realtime() { return api.clock_gettime(); }
