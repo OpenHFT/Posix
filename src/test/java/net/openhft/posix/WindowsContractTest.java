@@ -83,6 +83,19 @@ public class WindowsContractTest {
         }
     }
     @Test public void files() throws Exception {
+        Path retainedPath = Files.createTempFile("retained-file-sync", ".dat");
+        try {
+            PosixAPI.FileSync retained;
+            try (java.io.RandomAccessFile original = new java.io.RandomAccessFile(retainedPath.toFile(), "rw")) {
+                original.writeLong(123);
+                retained = api.retainFileSync(original.getFD());
+            }
+            try (PosixAPI.FileSync owned = retained) { owned.force(); }
+            assertEquals(8, Files.size(retainedPath));
+            try { retained.force(); fail("Closed handle accepted"); }
+            catch (IOException expected) { /* Retained handle lifetime is explicit. */ }
+            retained.close();
+        } finally { Files.deleteIfExists(retainedPath); }
         Path directory = Files.createTempDirectory("posix-contract");
         Path file = directory.resolve("unicode-\u03bb.dat");
         long buffer = api.malloc(16);
@@ -171,6 +184,10 @@ public class WindowsContractTest {
         assertEquals(-1, api.mmap(0, 4096, MMapProt.PROT_READ, MMapFlag.SHARED, -1, 0));
         assertEquals(-1, api.munmap(0, 4096));
         assertEquals(-1, api.msync(0, 4096, 4));
+        assertEquals(-1, api.flushMappedView(0, 4096));
+        assertEquals(-1, api.flushMappedView(Long.MAX_VALUE, 4096));
+        assertFalse(api.prefetchMappedView(0, 4096));
+        assertFalse(api.prefetchMappedView(Long.MAX_VALUE, 4096));
         assertEquals(-1, api.msync(0, 4096, MSyncFlag.MS_SYNC));
         assertEquals(-1, api.madvise(0, 4096, 4));
         for (MAdviseFlag flag : MAdviseFlag.values()) assertEquals(-1, api.madvise(0, 4096, flag));
@@ -202,6 +219,9 @@ public class WindowsContractTest {
             assertTrue(api.lastErrorStr(), view != 0 && view != -1);
             assertEquals(0, api.close(fd)); fd = -1;
             UNSAFE.putByte(view, (byte) 71);
+            assertEquals(0, api.flushMappedView(view, 4096));
+            boolean hinted = api.prefetchMappedView(view, 4096);
+            assertTrue(hinted || api.lastError() != 0);
             assertEquals(0, api.msync(view, 4096, MSyncFlag.MS_SYNC));
             assertEquals(71, Files.readAllBytes(file)[65536]);
             assertEquals(-1, api.munmap(view, 2048));
