@@ -7,5 +7,7 @@ import net.openhft.posix.internal.windows.WindowsPosixAPI;
 
 /** Windows x64 provider using JNR. */
 public final class WinJNRPosixAPI extends WindowsPosixAPI {
-    public WinJNRPosixAPI() { super(new WindowsJNRNative()); }
+    public WinJNRPosixAPI() {
+        super(new WindowsJNRNative());
+    }
 }
