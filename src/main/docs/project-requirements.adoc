@@ -91,3 +91,9 @@ unchanged position, read-only and invalid descriptors, negative lengths,
 and thread-local CRT errno. See `WinJNRPosixAPITest` and
 link:windows-support.adoc[Windows support and coverage assessment].
 |===
+
+The affinity summary boundary regression (`AffinitySummaryBoundaryTest`, FIX-292)
+compares sparse and continuous masks from 1 through 129 configured CPUs with an
+independent range oracle. It also verifies native buffer release after provider
+errors and exceptions. These are portable default-method tests, not qualification
+of a 129-CPU native Windows affinity API.
