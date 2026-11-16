@@ -40,13 +40,7 @@ public final class JNRPosixAPI implements PosixAPI {
     static final int LOCK_EX = 2;
     static final int LOCK_UN = 8;
     static final int MLOCK_ONFAULT = 1;
-    static final int SYS_mlock2; // mlock2 syscall value
-
-    static {
-        // These cover the main cases. Full list under https://github.com/torvalds/linux/tree/master/arch
-        SYS_mlock2 = Jvm.isArm() ? 390
-                : Jvm.is64bit() ? 325 : 376;
-    }
+    static final int SYS_mlock2 = LinuxSyscalls.mlock2(NATIVE_PLATFORM.getCPU().toString());
 
     // JNR interface for POSIX functions
     private final JNRPosixInterface jnr;
@@ -155,7 +149,11 @@ public final class JNRPosixAPI implements PosixAPI {
         if (!lockOnFault || OS.isMacOSX())
             return jnr.mlock(addr, length);
 
-        // Older glibc versions do not include a wrapper for mlock2, so use syscall for generality
+        // Never issue a guessed syscall on an unknown ABI.
+        if (NATIVE_PLATFORM.getOS() != Platform.OS.LINUX || SYS_mlock2 < 0) {
+            RUNTIME.setLastError(Errno.ENOSYS.intValue());
+            return -1;
+        }
         return jnr.syscall(SYS_mlock2, addr, length, MLOCK_ONFAULT);
     }
 
