@@ -7,6 +7,7 @@ import net.openhft.posix.internal.windows.WindowsPosixAPI;
 
 /** Windows x64 provider using JNA. */
 public final class WinJNAPosixAPI extends WindowsPosixAPI {
-    public WinJNAPosixAPI() { super(new WindowsJNANative()); }
+    public WinJNAPosixAPI() {
+        super(new WindowsJNANative());
+    }
 }
-
