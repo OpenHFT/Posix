@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0 -->
+<FindBugsFilter>
+    <!-- These Windows ABI entry points and their forwarding implementations must
+         retain the exported Win32 names. All other bug patterns remain enabled. -->
+    <Match>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+        <Or>
+            <Class name="net.openhft.posix.internal.jna.WindowsJNADirectNative"/>
+            <Class name="net.openhft.posix.internal.jna.WindowsJNADirectNative$Kernel"/>
+            <Class name="net.openhft.posix.internal.jna.WindowsJNANative"/>
+            <Class name="net.openhft.posix.internal.jnr.WindowsJNRNative"/>
+        </Or>
+        <Method name="~(CloseHandle|CreateFileMappingW|DuplicateHandle|FlushFileBuffers|FlushViewOfFile|GetActiveProcessorCount|GetCompressedFileSizeW|GetCurrentProcess|GetCurrentThread|GetCurrentThreadId|GetFileInformationByHandleEx|GetFileSizeEx|GetMaximumProcessorCount|GetProcessTimes|GetSystemInfo|GetSystemTimeAsFileTime|GetThreadGroupAffinity|GetThreadTimes|LockFileEx|MapViewOfFile|OpenThread|PrefetchVirtualMemory|SetFileInformationByHandle|SetThreadGroupAffinity|UnlockFileEx|UnmapViewOfFile|VirtualLock)"/>
+    </Match>
+</FindBugsFilter>

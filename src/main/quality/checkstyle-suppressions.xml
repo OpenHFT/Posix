@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <suppress checks="ClassTypeParameterName" files=".*/src/test/.*"/>
+    <suppress checks="CommentsIndentation" files=".*/src/test/.*"/>
+    <suppress checks="MemberName" files=".*/src/test/.*"/>
+    <!-- Win32 export names and the ABI forwarding methods retain native spelling.
+         This exception affects naming only, not formatting or other checks. -->
+    <suppress checks="MethodName" files="[/\\](WindowsJNANative|WindowsJNADirectNative|WindowsJNRNative)\.java$"/>
+</suppressions>
