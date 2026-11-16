@@ -3,11 +3,12 @@
  */
 package net.openhft.posix.internal.jnr;
 
+import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
+
 import jnr.ffi.Platform;
 import jnr.ffi.provider.FFIProvider;
-import net.openhft.posix.PosixAPI;
 
-import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
+import net.openhft.posix.PosixAPI;
 
 /**
  * Implementation of {@link PosixAPI} using JNR for Windows.
@@ -64,15 +65,13 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public long read(int fd, long dst, long len) {
-        if (len < 0)
-            return fail(EINVAL);
+        if (len < 0) return fail(EINVAL);
         return jnr._read(fd, dst, Math.min(len, Integer.MAX_VALUE));
     }
 
     @Override
     public long write(int fd, long src, long len) {
-        if (len < 0)
-            return fail(EINVAL);
+        if (len < 0) return fail(EINVAL);
         return jnr._write(fd, src, Math.min(len, Integer.MAX_VALUE));
     }
 
@@ -133,8 +132,7 @@ public final class WinJNRPosixAPI implements PosixAPI {
 
     @Override
     public int ftruncate(int fd, long offset) {
-        if (offset < 0)
-            return fail(EINVAL);
+        if (offset < 0) return fail(EINVAL);
         int error = jnr._chsize_s(fd, offset);
         return error == 0 ? 0 : fail(error);
     }
