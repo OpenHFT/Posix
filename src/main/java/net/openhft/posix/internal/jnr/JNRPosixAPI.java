@@ -40,7 +40,7 @@ public final class JNRPosixAPI implements PosixAPI {
     static final int LOCK_UN = 8;
     static final int MLOCK_ONFAULT = 1;
     private static final boolean LINUX = NATIVE_PLATFORM.getOS() == Platform.OS.LINUX;
-    static final int SYS_mlock2 = UnixConstants.mlock2Syscall(NATIVE_PLATFORM.getCPU().toString());
+    static final int SYS_mlock2 = LinuxSyscalls.mlock2(NATIVE_PLATFORM.getCPU().toString());
     private volatile boolean mlock2SymbolMissing;
 
     // JNR interface for POSIX functions
