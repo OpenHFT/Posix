@@ -35,8 +35,12 @@ public final class ProcMaps {
      * @throws IOException on read failure
      */
     private ProcMaps(Object proc) throws IOException {
-        try (BufferedReader br = Files.newBufferedReader(
-                Paths.get("/proc/" + proc + "/maps"), StandardCharsets.UTF_8)) {
+        this(Files.newBufferedReader(Paths.get("/proc/" + proc + "/maps"), StandardCharsets.UTF_8));
+    }
+
+    // Consumes and closes the input; fixtures exercise parsing without a live Linux process.
+    ProcMaps(BufferedReader input) throws IOException {
+        try (BufferedReader br = input) {
             for (String line; (line = br.readLine()) != null; ) {
                 mappingList.add(new Mapping(line));
             }

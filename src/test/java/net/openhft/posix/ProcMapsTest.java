@@ -32,9 +32,7 @@ public class ProcMapsTest {
     }
 
     @Test
-    public void forPidFailsForNonExistentProcessWhenProcAvailable() {
-        Assume.assumeTrue(Files.exists(Paths.get("/proc")));
-
+    public void forPidFailsForNonExistentProcess() {
         int unlikelyPid = 999999;
         if (Files.exists(Paths.get("/proc/" + unlikelyPid))) {
             // If this pid happens to exist on the build agent, skip the check

@@ -93,6 +93,10 @@ posix.munmap(addr, 4096);
 mvn -q verify
 ----
 
+`ProcMapsEdgeCaseTest` uses an in-memory maps fixture, so parsing boundaries are
+checked on Windows as well as Linux. Tests that inspect a live `/proc` mapping
+remain Linux-specific; the fixture does not emulate native mapping operations.
+
 Environment variables:
 
 * `POSIX_TEST_ALLOW_NATIVE` – set to *false* in CI to force `NoOpPosixAPI`.
