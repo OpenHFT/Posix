@@ -53,15 +53,26 @@ public class AffinitySummaryBoundaryTest {
         final BitSet mask;
         int frees, result;
         RuntimeException failure;
-        Backend(int cpus, BitSet mask) { super("test"); this.cpus = cpus; this.mask = mask; }
-        @Override public int get_nprocs_conf() { return cpus; }
+        Backend(int cpus, BitSet mask) {
+            super("test");
+            this.cpus = cpus;
+            this.mask = mask;
+        }
+        @Override public int get_nprocs_conf() {
+            return cpus;
+        }
         @Override public long malloc(long size) {
             long ptr = UNSAFE.allocateMemory(size);
             UNSAFE.setMemory(ptr, size, (byte) 0);
             return ptr;
         }
-        @Override public void free(long ptr) { frees++; UNSAFE.freeMemory(ptr); }
-        @Override public int lastError() { return 22; }
+        @Override public void free(long ptr) {
+            frees++;
+            UNSAFE.freeMemory(ptr);
+        }
+        @Override public int lastError() {
+            return 22;
+        }
         @Override public int sched_getaffinity(int pid, int size, long ptr) {
             assertEquals(42, pid);
             if (failure != null) throw failure;
