@@ -398,8 +398,9 @@ public class WindowsPosixAPI implements PosixAPI {
         for (int i = 8; i < size; i++) if (UNSAFE.getByte(mask + i) != 0) return fail(EINVAL);
         long handle = threadHandle(pid, true);
         if (handle == 0) return winFail();
-        long affinity = malloc(32);
+        long affinity = 0;
         try {
+            affinity = malloc(32);
             UNSAFE.setMemory(affinity, 32, (byte) 0);
             if (nativeApi.GetThreadGroupAffinity(handle, affinity + 16) == 0) return winFail();
             if (UNSAFE.getShort(affinity + 24) != 0) return fail(ENOSYS);
@@ -408,7 +409,7 @@ public class WindowsPosixAPI implements PosixAPI {
                     ? 0
                     : winFail();
         } finally {
-            free(affinity);
+            if (affinity != 0) free(affinity);
             if (pid != 0) nativeApi.CloseHandle(handle);
         }
     }
@@ -419,15 +420,16 @@ public class WindowsPosixAPI implements PosixAPI {
         if (size < 8 || mask == 0) return fail(EINVAL);
         long handle = threadHandle(pid, false);
         if (handle == 0) return winFail();
-        long affinity = malloc(16);
+        long affinity = 0;
         try {
+            affinity = malloc(16);
             if (nativeApi.GetThreadGroupAffinity(handle, affinity) == 0) return winFail();
             if (UNSAFE.getShort(affinity + 8) != 0) return fail(ENOSYS);
             UNSAFE.setMemory(mask, size, (byte) 0);
             UNSAFE.putLong(mask, UNSAFE.getLong(affinity));
             return 0;
         } finally {
-            free(affinity);
+            if (affinity != 0) free(affinity);
             if (pid != 0) nativeApi.CloseHandle(handle);
         }
     }
@@ -436,8 +438,9 @@ public class WindowsPosixAPI implements PosixAPI {
     public long du(String filename) throws IOException {
         int fd = open(filename, 0, 0);
         if (fd < 0) throw new IOException("Unable to open file for disk usage: " + lastErrorStr());
-        long info = malloc(24);
+        long info = 0;
         try {
+            info = malloc(24);
             long handle = nativeApi._get_osfhandle(fd);
             if (nativeApi.GetFileInformationByHandleEx(handle, 1, info, 24) == 0) {
                 winFail();
@@ -447,7 +450,7 @@ public class WindowsPosixAPI implements PosixAPI {
             // Preserve the existing facade's du convention: allocated KiB.
             return allocated / 1024 + (allocated % 1024 == 0 ? 0 : 1);
         } finally {
-            free(info);
+            if (info != 0) free(info);
             close(fd);
         }
     }

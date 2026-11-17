@@ -61,6 +61,11 @@ and sets ENOSYS: it does not lock pages. Disk usage errors throw IOException.
 
 == Test obligations
 
+`WindowsAllocationFailureTest` injects scratch allocation failure after native
+thread-handle or file-descriptor acquisition (POSIX-TEST-014). Owned handles,
+including descriptor zero, must close while the original allocation failure
+propagates. Borrowed current-thread pseudo-handles must never close.
+
 WindowsContractTest runs the same assertions against each advertised binding.
 An invocation registry requires every one of the 43 PosixAPI signatures to
 execute, including overloads, static selection and unavailable calls.
