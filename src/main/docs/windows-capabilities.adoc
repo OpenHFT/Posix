@@ -19,7 +19,10 @@ Unsupported bits return EINVAL. Permission read/write bits map to CRT modes;
 POSIX ownership and ACL semantics are not provided.
 * Seek SET/CUR/END. DATA/HOLE are unavailable. The previously incorrect
 WhenceFlag constants are corrected to native POSIX values; code persisting
-the old numeric enum values must migrate.
+the old numeric enum values must migrate. Unix translates DATA/HOLE at the
+Darwin ABI boundary, where the native values are reversed; ordinary seeks
+and the public enum values remain unchanged. `UnixConstantsTest` verifies
+this translation on every host (POSIX-TEST-014).
 * CRT errno and error strings, off-heap allocation/free, PID/native TID,
 active and maximum Windows logical processor counts across groups.
 * Realtime, monotonic, process CPU and thread CPU clocks. Other clock IDs
@@ -106,3 +109,6 @@ the original mask in a finally block. The native buffer is freed even if
 restoration fails. Windows configurations above 64 logical CPUs check the
 explicit ENOSYS contract instead; this is not multi-group affinity coverage.
 The macOS exclusion is retained.
+`WindowsMappingFailureTest` injects failure in mapping-object creation and
+view creation, verifying that each acquired handle closes exactly once while
+the caller-owned original handle stays open (POSIX-TEST-014).
