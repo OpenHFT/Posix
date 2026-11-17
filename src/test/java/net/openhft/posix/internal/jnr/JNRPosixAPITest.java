@@ -54,44 +54,44 @@ public class JNRPosixAPITest {
 
     @Test
     public void mmap_sync() throws IOException {
-        assumeTrue(new File("/proc/self").exists());
+        assumeTrue(!isUnix() || new File("/proc/self/maps").exists());
         final Path file = Files.createTempFile("mmap", ".test");
         final String filename = file.toAbsolutePath().toString();
         final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
         final long length = 1L << 16;
-        int err = jnr.ftruncate(fd, length);
-        assertEquals(0, err);
-
-        assertEquals(0, jnr.du(filename));
-
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
-        assertNotEquals(-1, addr);
-
-        int err4 = jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL);
-        assertEquals(0, err4);
-
-        ProcMaps procMaps = ProcMaps.forSelf();
-        final List<Mapping> list = procMaps.findAll(m -> filename.equals(m.path()));
-        assertEquals(1, list.size());
-        final Mapping mapping = list.get(0);
-        assertEquals(addr, mapping.addr());
-        assertEquals(length, mapping.length());
-        assertEquals(0L, mapping.offset());
-
-        assertEquals(0, jnr.du(filename));
-        int err3 = jnr.fallocate(fd, 0, 0, length);
-        assertEquals(0, err3);
-        assertEquals(length >> 10, jnr.du(filename));
-
-        final int err0 = jnr.msync(addr, length, MSyncFlag.MS_ASYNC);
-        assertEquals(0, err0);
-
-        int err1 = jnr.munmap(addr, length);
-        assertEquals(0, err1);
-        int err2 = jnr.close(fd);
-        assertEquals(0, err2);
-        assertTrue(file.toFile().exists());
-        file.toFile().delete();
+        long addr = -1;
+        try {
+            assertTrue(jnr.lastErrorStr(), fd >= 0);
+            assertEquals(0, jnr.ftruncate(fd, length));
+            boolean hasProc = new File("/proc/self/maps").exists();
+            if (hasProc) assertEquals(0, jnr.du(filename));
+            addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
+            assertTrue(jnr.lastErrorStr(), addr != 0 && addr != -1);
+            if (hasProc) {
+                assertEquals(0, jnr.madvise(addr, length, MAdviseFlag.MADV_SEQUENTIAL));
+                List<Mapping> list = ProcMaps.forSelf().findAll(m -> filename.equals(m.path()));
+                assertEquals(1, list.size());
+                assertEquals(addr, list.get(0).addr());
+                assertEquals(length, list.get(0).length());
+                assertEquals(0L, list.get(0).offset());
+                assertEquals(0, jnr.du(filename));
+                assertEquals(0, jnr.fallocate(fd, 0, 0, length));
+                assertEquals(length >> 10, jnr.du(filename));
+            }
+            net.openhft.posix.internal.UnsafeMemory.UNSAFE.putByte(addr, (byte) 31);
+            net.openhft.posix.internal.UnsafeMemory.UNSAFE.putByte(addr + length - 1, (byte) 47);
+            assertEquals(0, jnr.msync(addr, length, MSyncFlag.MS_SYNC));
+            byte[] persisted = Files.readAllBytes(file);
+            assertEquals(31, persisted[0]);
+            assertEquals(47, persisted[(int) length - 1]);
+            if (isUnix()) assertEquals(0, jnr.msync(addr, length, MSyncFlag.MS_ASYNC));
+            else {
+                assertEquals(-1, jnr.msync(addr, length, MSyncFlag.MS_ASYNC));
+                assertEquals(40, jnr.lastError());
+            }
+        } finally {
+            releaseMapping(file, fd, addr, length);
+        }
     }
 
     @Test
@@ -103,48 +103,48 @@ public class JNRPosixAPITest {
 
     @Test
     public void mlock() throws IOException {
-        assumeTrue(new File("/proc/self").exists());
-        final Path file = Files.createTempFile("mmap", ".test");
-        final String filename = file.toAbsolutePath().toString();
-        final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
-        final long length = 1L << 16;
-        int err = jnr.ftruncate(fd, length);
-        assertEquals(0, err);
-
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
-        assertNotEquals(-1, addr);
-
-        jnr.mlock(addr, length);
-
-        int err1 = jnr.munmap(addr, length);
-        assertEquals(0, err1);
-        int err2 = jnr.close(fd);
-        assertEquals(0, err2);
-        assertTrue(file.toFile().exists());
-        file.toFile().delete();
+        mappedPageLock(false);
     }
 
     @Test
     public void mlock2() throws IOException {
-        assumeTrue(new File("/proc/self").exists());
-        final Path file = Files.createTempFile("mmap", ".test");
-        final String filename = file.toAbsolutePath().toString();
-        final int fd = jnr.open(filename, OpenFlag.O_RDWR, 0666);
-        final long length = 1L << 16;
-        int err = jnr.ftruncate(fd, length);
-        assertEquals(0, err);
+        mappedPageLock(true);
+    }
 
-        long addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
-        assertNotEquals(-1, addr);
+    private void mappedPageLock(boolean secondVariant) throws IOException {
+        assumeTrue(!isUnix() || new File("/proc/self/maps").exists());
+        Path file = Files.createTempFile("mlock", ".test");
+        int fd = jnr.open(file.toString(), OpenFlag.O_RDWR, 0666);
+        long length = 4096;
+        long addr = -1;
+        try {
+            assertTrue(jnr.lastErrorStr(), fd >= 0);
+            assertEquals(0, jnr.ftruncate(fd, length));
+            addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
+            assertTrue(jnr.lastErrorStr(), addr != 0 && addr != -1);
+            if (!secondVariant) assertTrue(jnr.lastErrorStr(), jnr.mlock(addr, length));
+            else if (isUnix()) assertTrue(jnr.lastErrorStr(), jnr.mlock2(addr, length, true));
+            else {
+                // Windows implements eager locking, not Linux's on-fault contract.
+                assertFalse(jnr.mlock2(addr, length, true));
+                assertEquals(40, jnr.lastError());
+                assertTrue(jnr.lastErrorStr(), jnr.mlock2(addr, length, false));
+            }
+        } finally {
+            releaseMapping(file, fd, addr, length);
+        }
+    }
 
-        jnr.mlock2(addr, length, true);
-
-        int err1 = jnr.munmap(addr, length);
-        assertEquals(0, err1);
-        int err2 = jnr.close(fd);
-        assertEquals(0, err2);
-        assertTrue(file.toFile().exists());
-        file.toFile().delete();
+    private void releaseMapping(Path file, int fd, long addr, long length) throws IOException {
+        try {
+            try {
+                if (addr != 0 && addr != -1) assertEquals(0, jnr.munmap(addr, length));
+            } finally {
+                if (fd >= 0) assertEquals(0, jnr.close(fd));
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 
     @Test
@@ -215,7 +215,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
+        assumeFalse("macOS does not support this affinity facade", isMacOSX());
 
         int gettid = jnr.gettid();
         int count = jnr.get_nprocs_conf();
@@ -223,6 +223,12 @@ public class JNRPosixAPITest {
         long original = jnr.malloc(size);
         boolean captured = false;
         try {
+            assertNotEquals(0L, original);
+            if (!isUnix() && count > 64) {
+                assertEquals(-1, jnr.sched_getaffinity(gettid, size, original));
+                assertEquals(40, jnr.lastError());
+                return;
+            }
             assertEquals(0, jnr.sched_getaffinity(gettid, size, original));
             captured = true;
             int cpu = 0;
@@ -233,23 +239,37 @@ public class JNRPosixAPITest {
             assertEquals(cpu + "-" + cpu, jnr.sched_getaffinity_summary(gettid));
             assertEquals(0, jnr.sched_setaffinity_range(gettid, cpu, cpu));
         } finally {
-            if (captured) assertEquals(0, jnr.sched_setaffinity(gettid, size, original));
-            jnr.free(original);
+            try {
+                if (captured) assertEquals(0, jnr.sched_setaffinity(gettid, size, original));
+            } finally {
+                jnr.free(original);
+            }
         }
     }
 
     @Test
     public void clocks() {
-        assumeTrue(isUnix());
-
         for (ClockId value : ClockId.values()) {
+            if (!isUnix() && value.value() > 3) {
+                assertThrows(IllegalArgumentException.class, () -> jnr.clock_gettime(value));
+                continue;
+            }
             try {
+                long before = System.currentTimeMillis();
                 final long gettime = jnr.clock_gettime(value);
-                System.out.println(value + ": " + gettime);
+                if (value == ClockId.CLOCK_REALTIME) {
+                    assertTrue(gettime / 1_000_000 >= before - 1000);
+                    assertTrue(gettime / 1_000_000 <= System.currentTimeMillis() + 1000);
+                } else if (value == ClockId.CLOCK_MONOTONIC) {
+                    assertTrue(jnr.clock_gettime(value) >= gettime);
+                } else if (value == ClockId.CLOCK_PROCESS_CPUTIME_ID || value == ClockId.CLOCK_THREAD_CPUTIME_ID) {
+                    assertTrue(gettime >= 0);
+                }
             } catch (IllegalArgumentException e) {
-                System.out.println(value + ": " + e);
+                assertTrue("Required Windows clock unavailable: " + value, isUnix());
             }
         }
+        assertThrows(IllegalArgumentException.class, () -> jnr.clock_gettime(-1));
     }
 
     private static boolean isUnix() {

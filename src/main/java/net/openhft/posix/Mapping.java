@@ -51,7 +51,7 @@ public final class Mapping {
      * @throws ArrayIndexOutOfBoundsException if fields are missing
      */
     public Mapping(String line) {
-        String[] parts = line.split(" +");
+        String[] parts = line.split(" +", 6);
         String[] addrs = parts[0].split("\\-");
         long addr0 = Long.parseUnsignedLong(addrs[0], 16);
         addr = UnsafeMemory.IS32BIT ? (int) addr0 : addr0;
@@ -59,7 +59,7 @@ public final class Mapping {
         perms = parts[1];
         offset = Long.parseUnsignedLong(parts[2], 16);
         device = parts[3];
-        inode = Long.parseLong(parts[4]);
+        inode = Long.parseUnsignedLong(parts[4]);
         path = parts.length >= 6 ? parts[5] : "";
         toString = line;
     }
@@ -79,7 +79,7 @@ public final class Mapping {
         return offset;
     }
 
-    /** Inode number. */
+    /** Unsigned inode bits; use {@link Long#toUnsignedString(long)} for display. */
     public long inode() {
         return inode;
     }
