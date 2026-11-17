@@ -3,10 +3,11 @@
  */
 package net.openhft.posix.internal.jnr;
 
-import net.openhft.posix.WhenceFlag;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import net.openhft.posix.WhenceFlag;
+
+import org.junit.Test;
 
 public class UnixConstantsTest {
     @Test

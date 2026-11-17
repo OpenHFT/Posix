@@ -5,8 +5,7 @@ package net.openhft.posix.internal.jnr;
 
 /** Translates stable facade values at the native ABI boundary. */
 final class UnixConstants {
-    private UnixConstants() {
-    }
+    private UnixConstants() {}
 
     static int whence(int whence, boolean darwin) {
         if (darwin && (whence == 3 || whence == 4))
