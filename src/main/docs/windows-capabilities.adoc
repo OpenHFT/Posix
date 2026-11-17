@@ -66,3 +66,15 @@ consumes and closes the input on both success and failure.
 These parser/error checks do not implement Windows process-map enumeration.
 The live `/proc/self/maps` integration test and sparse `SEEK_DATA` test remain
 Linux-specific because the corresponding Windows functionality is unavailable.
+
+The legacy `mmap_sync`, `mlock` and `mlock2` tests run on Windows and Linux.
+Mapping checks validate a non-zero, non-failure address before writing the
+first and last bytes, then synchronously flush and read the file contents.
+Linux retains its `/proc`, allocation, advice and asynchronous-sync checks;
+Windows explicitly checks that MS_ASYNC returns ENOSYS.
+The page-lock tests assert successful locking of one 4 KiB mapping rather
+than ignoring the result. On Windows, `mlock2(true)` must reject lock-on-fault
+with ENOSYS, while `mlock2(false)` must successfully lock eagerly.
+These checks require a sufficient OS page-lock allowance. Unmap, close and
+file deletion are attempted even if a preceding assertion fails.
+The prior guards remain for other Unix platforms; this does not qualify macOS.
