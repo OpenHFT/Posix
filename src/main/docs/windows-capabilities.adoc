@@ -40,3 +40,18 @@ execute, including overloads, static selection and unavailable calls.
 WindowsBoundaryTest checks large transfer capping without huge allocation
 and affinity masks across CPU indexes 31/32/63/64/128 with buffer canaries.
 Raw pointer validity remains the caller's responsibility.
+
+[[portable-regression-tests]]
+=== Portable regression tests (POSIX-TEST-014)
+
+`JNRPosixAPITest.clocks` also runs on Windows, asserting wall-clock bounds,
+monotonic ordering, non-negative CPU times and rejection of unsupported IDs.
+Unix retains its allowance for optional clock IDs that the OS cannot supply.
+`ProcMapsTest.forPidFailsForNonExistentProcess` checks the missing-source
+IOException on every platform. `ProcMapsEdgeCaseTest` uses fixture input for
+filtering and list immutability; its package-private reader constructor
+consumes and closes the input on both success and failure.
+
+These parser/error checks do not implement Windows process-map enumeration.
+The live `/proc/self/maps` integration test and sparse `SEEK_DATA` test remain
+Linux-specific because the corresponding Windows functionality is unavailable.

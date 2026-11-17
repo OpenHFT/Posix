@@ -90,6 +90,14 @@ EOF and zero-length writes, seeks beyond 4 GiB, truncation/extension with
 unchanged position, read-only and invalid descriptors, negative lengths,
 and thread-local CRT errno. See `WinJNRPosixAPITest` and
 link:windows-support.adoc[Windows support and coverage assessment].
+
+| POSIX-TEST-014
+| Portable legacy regression coverage
+| Exercise supported Windows operations in the legacy regression tests with
+assertions for their actual contracts. Keep Linux-only integration checks
+guarded, test unsupported Windows modes explicitly, and release native
+resources even when an assertion fails. See
+link:windows-capabilities.adoc#portable-regression-tests[portable regression tests].
 |===
 
 The affinity summary boundary regression (`AffinitySummaryBoundaryTest`, FIX-292)
