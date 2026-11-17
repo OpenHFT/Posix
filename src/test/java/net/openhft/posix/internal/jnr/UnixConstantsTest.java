@@ -3,12 +3,24 @@
  */
 package net.openhft.posix.internal.jnr;
 
-import net.openhft.posix.WhenceFlag;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 
+import net.openhft.posix.WhenceFlag;
+
+import org.junit.Test;
+
 public class UnixConstantsTest {
+    @Test
+    public void distinguishesArmAbisAndRejectsUnknownSyscalls() {
+        assertEquals(284, UnixConstants.mlock2Syscall("aarch64"));
+        assertEquals(390, UnixConstants.mlock2Syscall("arm"));
+        assertEquals(325, UnixConstants.mlock2Syscall("x86_64"));
+        assertEquals(376, UnixConstants.mlock2Syscall("i386"));
+        assertEquals(-1, UnixConstants.mlock2Syscall("unknown"));
+        assertEquals(178, UnixConstants.gettidSyscall("aarch64"));
+        assertEquals(-1, UnixConstants.gettidSyscall("unknown"));
+    }
+
     @Test
     public void sparseSeekUsesDarwinConstantsWithoutChangingPublicValues() {
         assertEquals(4, UnixConstants.whence(WhenceFlag.SEEK_DATA.value(), true));
