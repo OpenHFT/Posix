@@ -1,0 +1,23 @@
+= Unix provider contract corrections (FIX-292)
+:sectnums:
+:source-highlighter: rouge
+
+== Native boundary (POSIX-FN-003, POSIX-FN-004)
+
+Translate facade open flags to platform constants and reject unknown flags.
+Use explicit architecture mappings for Linux thread-ID and mlock2 fallback
+syscalls; unsupported platforms return ENOSYS. The earlier contract change
+translates Darwin sparse-seek values at the native boundary.
+
+Mapping and affinity failures preserve their native return values and errno.
+Failed memory locks return false, including unavailable Azul locking; only
+explicit lock-on-fault requests require mlock2. Read both 64-bit timespec fields
+on 64-bit systems. These corrections are extracted from the provider
+qualification PR so Unix runtime behaviour can be reviewed independently.
+
+== Verification (POSIX-TEST-014)
+
+`UnixContractTest` exercises file flags, mapping/locking errors, affinity,
+clock values and sparse seeking on supported Unix hosts. `UnixConstantsTest`
+checks ABI translation without requiring that host. `UnsignedMappingTest`
+checks unsigned addresses in addition to the invalid mapping sentinel.
