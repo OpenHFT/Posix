@@ -67,3 +67,30 @@ execute, including overloads, static selection and unavailable calls.
 WindowsBoundaryTest checks large transfer capping without huge allocation
 and affinity masks across CPU indexes 31/32/63/64/128 with buffer canaries.
 Raw pointer validity remains the caller's responsibility.
+
+[[portable-regression-tests]]
+=== Portable regression tests (POSIX-TEST-014)
+
+`JNRPosixAPITest.clocks` also runs on Windows, asserting wall-clock bounds,
+monotonic ordering, non-negative CPU times and rejection of unsupported IDs.
+Unix retains its allowance for optional clock IDs that the OS cannot supply.
+`ProcMapsTest.forPidFailsForNonExistentProcess` checks the missing-source
+IOException on every platform. `ProcMapsEdgeCaseTest` uses fixture input for
+filtering and list immutability; its package-private reader constructor
+consumes and closes the input on both success and failure.
+
+These parser/error checks do not implement Windows process-map enumeration.
+The live `/proc/self/maps` integration test and sparse `SEEK_DATA` test remain
+Linux-specific because the corresponding Windows functionality is unavailable.
+
+The legacy `mmap_sync`, `mlock` and `mlock2` tests run on Windows and Linux.
+Mapping checks validate a non-zero, non-failure address before writing the
+first and last bytes, then synchronously flush and read the file contents.
+Linux retains its `/proc`, allocation, advice and asynchronous-sync checks;
+Windows explicitly checks that MS_ASYNC returns ENOSYS.
+The page-lock tests assert successful locking of one 4 KiB mapping rather
+than ignoring the result. On Windows, `mlock2(true)` must reject lock-on-fault
+with ENOSYS, while `mlock2(false)` must successfully lock eagerly.
+These checks require a sufficient OS page-lock allowance. Unmap, close and
+file deletion are attempted even if a preceding assertion fails.
+The prior guards remain for other Unix platforms; this does not qualify macOS.
