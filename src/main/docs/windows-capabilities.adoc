@@ -81,3 +81,7 @@ with ENOSYS, while `mlock2(false)` must successfully lock eagerly.
 These checks require a sufficient OS page-lock allowance. Unmap, close and
 file deletion are attempted even if a preceding assertion fails.
 The prior guards remain for other Unix platforms; this does not qualify macOS.
+
+`WindowsMappingFailureTest` injects failure in mapping-object creation and
+view creation, verifying that each acquired handle closes exactly once while
+the caller-owned original handle stays open (POSIX-TEST-014).
