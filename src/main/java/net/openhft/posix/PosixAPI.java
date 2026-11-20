@@ -253,6 +253,40 @@ public interface PosixAPI {
     int msync(long address, long length, int mode);
 
     /**
+     * Flushes a caller-owned mapped view without taking ownership of its address
+     * or file handle. The caller must keep the entire range mapped until return.
+     * This is not a file metadata or durable-storage guarantee; the mapping owner
+     * must additionally force its retained file handle when that is required.
+     * Unsupported providers throw rather than reporting successful work.
+     */
+    default int flushMappedView(long address, long length) {
+        throw new UnsupportedOperationException("External mapped-view flushing is unavailable");
+    }
+
+    /**
+     * Requests cache prefetch for a caller-owned mapped range. True means only
+     * that the hint was accepted, not writable-page population or residency.
+     * False means unsupported or failed; ordinary demand paging remains valid.
+     */
+    default boolean prefetchMappedView(long address, long length) {
+        return false;
+    }
+
+    /** Retained file identity for flushing after the original descriptor closes. */
+    interface FileSync extends AutoCloseable {
+        void force() throws java.io.IOException;
+        @Override void close() throws java.io.IOException;
+    }
+
+    /**
+     * Duplicates the caller's file handle. The caller must prevent descriptor
+     * closure during this call and close the returned resource exactly once.
+     */
+    default FileSync retainFileSync(java.io.FileDescriptor descriptor) throws java.io.IOException {
+        throw new UnsupportedOperationException("Retained file flushing is unavailable");
+    }
+
+    /**
      * Unmap a region previously mapped with {@code mmap}.
      *
      * @param addr   start address
