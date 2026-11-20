@@ -6,7 +6,8 @@ package net.openhft.posix;
 /**
  * Flags for the {@code open(2)} system call.
  *
- * <p>The integer values mirror the glibc headers for binary compatibility.</p>
+ * <p>These are stable facade values, translated to each operating system's
+ * native constants by the provider. They are not Linux header values.</p>
  *
  * @see <a href="https://man7.org/linux/man-pages/man2/open.2.html">open(2)</a>
  */
@@ -47,20 +48,20 @@ public enum OpenFlag {
     /** Error if already exists. */
     O_EXCL(0x0800);
 
-    /** Native constant value. */
+    /** Stable facade value. */
     final int value;
 
     /**
-     * @param value native constant value
+     * @param value facade constant value
      */
     OpenFlag(int value) {
         this.value = value;
     }
 
     /**
-     * Returns the native integer to pass to {@code open}.
+     * Returns the facade integer to pass to {@link PosixAPI#open(CharSequence, int, int)}.
      *
-     * @return native integer constant
+     * @return facade integer constant
      */
     public int value() {
         return value;
