@@ -8,6 +8,7 @@ import net.openhft.posix.PosixAPI;
 import net.openhft.posix.internal.jnr.JNRPosixAPI;
 import net.openhft.posix.internal.jnr.WinJNRPosixAPI;
 import net.openhft.posix.internal.jna.WinJNAPosixAPI;
+import net.openhft.posix.internal.jna.WinJNADirectPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
 /**
@@ -40,6 +41,8 @@ public class PosixAPIHolder {
                 POSIX_API = Platform.getNativePlatform().isUnix() ? new JNRPosixAPI() : new WinJNRPosixAPI();
             } else if ("jna".equals(requested)) {
                 POSIX_API = new WinJNAPosixAPI();
+            } else if ("jna-direct".equals(requested)) {
+                POSIX_API = new WinJNADirectPosixAPI();
             } else if ("ffm".equals(requested)) {
                 String version = System.getProperty("java.specification.version");
                 if (version.startsWith("1.") || Integer.parseInt(version) < 22)

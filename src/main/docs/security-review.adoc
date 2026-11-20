@@ -110,6 +110,17 @@ When suppressions are required (for example around deliberate use of Unsafe or p
 
 == Known Limitations and Future Work
 
+FIX-292 Windows review: native signatures use pointer-sized values and explicit
+64-bit offsets. Length/range arithmetic is checked before mapping/allocation;
+affinity helpers validate bounds before writing masks. Mapping ownership is
+tracked and duplicated handles are released on failure and whole-view unmap.
+Tests inject failures at both mapping stages. Paths use UTF-16 and reject
+embedded NUL. CRT errno and captured Win32 errors remain separate until
+translated. Raw addresses are trusted caller inputs: arbitrary pointer validity
+cannot be established by this facade. Blocking lock calls require caller
+coordination; contention tests run in bounded child JVMs. The zero-allocation
+objective does not override resource ownership or truthful error reporting.
+
 At the time of writing:
 
 * The security posture for Posix assumes that the JVM and native libraries are trusted components.

@@ -31,7 +31,8 @@ public class WindowsContractTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> providers() {
         List<Object[]> result = new ArrayList<>();
-        for (String name : System.getProperty("posix.test.providers", "jnr,jna").split(","))
+        for (String name :
+                System.getProperty("posix.test.providers", "jnr,jna,jna-direct").split(","))
             result.add(new Object[] {name});
         return result;
     }
@@ -72,6 +73,8 @@ public class WindowsContractTest {
     private static PosixAPI create(String name) throws Exception {
         if ("jnr".equals(name)) return new WinJNRPosixAPI();
         if ("jna".equals(name)) return new WinJNAPosixAPI();
+        if ("jna-direct".equals(name))
+            return new net.openhft.posix.internal.jna.WinJNADirectPosixAPI();
         return (PosixAPI)
                 Class.forName("net.openhft.posix.ffm.WinFFMPosixAPI")
                         .getDeclaredConstructor()
