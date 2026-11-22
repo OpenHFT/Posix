@@ -1,0 +1,50 @@
+= Optional Windows FFM Provider
+:toc:
+:sectnums:
+:source-highlighter: rouge
+
+This artifact uses final Java 22 APIs and is not part of the Java 8 build.
+It implements the same Windows subset as the JNA/JNR providers. The ABI is
+Windows x64; other architectures remain unqualified. No preview flags are used.
+
+== Build
+
+From the repository root, select JDK 8 and run:
+
+[source,shell]
+----
+mvn -B clean install
+----
+
+Then select JDK 22+ and run:
+
+[source,shell]
+----
+mvn -B -f posix-ffm/pom.xml clean verify
+----
+
+The independent POM compiles with release 22 and consumes the core's test jar
+to run the same full-signature contract suite. The base artifact does not
+depend on this artifact. Its source and build remain usable with actual JDK 8.
+
+== Run
+
+Add `net.openhft:posix-ffm` at the same version as `posix`, and use:
+
+[source,shell]
+----
+java --enable-native-access=ALL-UNNAMED -Dchronicle.posix.provider=ffm ...
+----
+
+Explicit selection is required. On Java 8-21 the base loader rejects FFM
+before resolving any modern classes, including when the jar is on the
+classpath. Use JNR or JNA there. On the module path enable native access for
+the actual provider module instead of ALL-UNNAMED.
+
+Cached exact downcall handles and per-thread captured Win32 error state
+avoid dynamic argument arrays. State memory has an automatic arena lifetime;
+system DLLs stay loaded for the JVM lifetime. Raw pointer ownership still
+follows PosixAPI; FFM does not make arbitrary caller-provided addresses safe.
+This is an opt-in implementation, not a measured performance replacement.
+
+See ../src/main/docs/windows-capabilities.adoc[capabilities and limitations].
