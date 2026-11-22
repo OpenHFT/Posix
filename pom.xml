@@ -184,11 +184,11 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <configLocation>${checkstyle.config.location}</configLocation>
+                            <configLocation>net/openhft/quality/checkstyle27/chronicle-baseline-checkstyle.xml</configLocation>
                             <failOnViolation>true</failOnViolation>
                             <logViolationsToConsole>true</logViolationsToConsole>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <violationSeverity>${checkstyle.violationSeverity}</violationSeverity>
+                            <violationSeverity>warning</violationSeverity>
                         </configuration>
                         <dependencies>
                             <dependency>

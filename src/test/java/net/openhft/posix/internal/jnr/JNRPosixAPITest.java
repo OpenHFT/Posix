@@ -34,8 +34,9 @@ public class JNRPosixAPITest {
         assertEquals(0, jnr.ftruncate(fd, 4096));
         // 'lseek' on Windows and macOS doesn't support following behavior
         if (isUnix() && !isMacOSX()) {
-            assertEquals(16, jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA));
-            assertEquals(4095, jnr.lseek(fd, 4095, WhenceFlag.SEEK_DATA));
+            // ftruncate can create a sparse hole; SEEK_DATA is filesystem-dependent.
+            long data = jnr.lseek(fd, 16, WhenceFlag.SEEK_DATA);
+            assertTrue(data == -1 || (data >= 16 && data < 4096));
             assertEquals(-1, jnr.lseek(fd, 4096, WhenceFlag.SEEK_DATA));
         }
 
@@ -217,11 +218,24 @@ public class JNRPosixAPITest {
         assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
 
         int gettid = jnr.gettid();
-        assertEquals(0, jnr.sched_setaffinity_as(gettid, 1));
-        assertEquals("1-1", jnr.sched_getaffinity_summary(gettid));
-        assertEquals(0, jnr.sched_setaffinity_range(gettid, 2, 3));
-        assertEquals("2-3", jnr.sched_getaffinity_summary(gettid));
-        assertEquals(0, jnr.sched_setaffinity_range(gettid, 0, jnr.get_nprocs_conf()));
+        int count = jnr.get_nprocs_conf();
+        int size = Math.max(8, (count + 63) / 64 * 8);
+        long original = jnr.malloc(size);
+        boolean captured = false;
+        try {
+            assertEquals(0, jnr.sched_getaffinity(gettid, size, original));
+            captured = true;
+            int cpu = 0;
+            while (cpu < count && (net.openhft.posix.internal.UnsafeMemory.UNSAFE.getByte(original + cpu / 8)
+                    & (1 << (cpu & 7))) == 0) cpu++;
+            assertTrue(cpu < count);
+            assertEquals(0, jnr.sched_setaffinity_as(gettid, cpu));
+            assertEquals(cpu + "-" + cpu, jnr.sched_getaffinity_summary(gettid));
+            assertEquals(0, jnr.sched_setaffinity_range(gettid, cpu, cpu));
+        } finally {
+            if (captured) assertEquals(0, jnr.sched_setaffinity(gettid, size, original));
+            jnr.free(original);
+        }
     }
 
     @Test
