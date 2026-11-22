@@ -318,17 +318,33 @@ public interface PosixAPI {
      * @throws IOException if the child process fails
      */
     default long du(String filename) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("du", filename);
+        // Explicit KiB units are independent of POSIXLY_CORRECT/BLOCK_SIZE.
+        ProcessBuilder pb = new ProcessBuilder("du", "-k", "-s", "--",
+                new java.io.File(filename).getAbsolutePath());
         pb.redirectErrorStream(true);
         final Process process = pb.start();
         try (InputStream inputStream = process.getInputStream();
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              BufferedReader br = new BufferedReader(inputStreamReader)) {
+            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS))
+                throw new IOException("du timed out for " + filename);
             String line = br.readLine();
+            if (process.exitValue() != 0)
+                throw new IOException("du failed for " + filename + ": " + line);
             if (line == null) {
                 throw new IOException("du produced no output for " + filename);
             }
-            return Long.parseUnsignedLong(line.split("\\s+")[0]);
+            try {
+                return Long.parseUnsignedLong(line.trim().split("\\s+")[0]);
+            } catch (NumberFormatException invalid) {
+                throw new IOException("Invalid du output: " + line, invalid);
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for du", interrupted);
+        } finally {
+            if (process.isAlive())
+                process.destroyForcibly();
         }
     }
 
