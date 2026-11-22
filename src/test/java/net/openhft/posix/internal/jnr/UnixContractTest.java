@@ -7,6 +7,7 @@ import jnr.constants.platform.Errno;
 import jnr.ffi.Platform;
 import net.openhft.posix.OpenFlag;
 import net.openhft.posix.PosixAPI;
+import net.openhft.posix.PosixRuntimeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,19 +89,23 @@ public class UnixContractTest {
     }
 
     @Test
-    public void lockingInvalidRangeReturnsFalse() {
+    public void lockingInvalidRangePreservesUnexpectedErrno() {
         if (Platform.getNativePlatform().getOS() == Platform.OS.LINUX) {
             assertFalse(api.mlock(0, 1));
             assertNotEquals(0, api.lastError());
         }
         // Darwin can successfully wire its reserved PAGEZERO region. An address
         // range that wraps is invalid on both systems, independent of mappings.
-        assertFalse(api.mlock(-1L, 2));
-        assertNotEquals(0, api.lastError());
-        assertFalse(api.mlock2(-1L, 2, true));
-        assertNotEquals(0, api.lastError());
-        if (Platform.getNativePlatform().getOS() != Platform.OS.LINUX)
-            assertEquals(Errno.ENOSYS.intValue(), api.lastError());
+        PosixRuntimeException invalid = assertThrows(PosixRuntimeException.class, () -> api.mlock(-1L, 2));
+        assertEquals(Errno.EINVAL.intValue(), invalid.errno());
+        Platform.OS os = Platform.getNativePlatform().getOS();
+        if (os == Platform.OS.LINUX || os == Platform.OS.DARWIN) {
+            PosixRuntimeException onFault = assertThrows(PosixRuntimeException.class,
+                    () -> api.mlock2(-1L, 2, true));
+            assertEquals(Errno.EINVAL.intValue(), onFault.errno());
+        } else {
+            assertFalse(api.mlock2(-1L, 2, true));
+        }
     }
 
     @Test
