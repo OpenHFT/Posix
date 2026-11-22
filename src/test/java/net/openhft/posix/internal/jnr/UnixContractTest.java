@@ -15,6 +15,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.function.BooleanSupplier;
 
 import static net.openhft.posix.internal.UnsafeMemory.UNSAFE;
 import static org.junit.Assert.*;
@@ -89,22 +90,31 @@ public class UnixContractTest {
     }
 
     @Test
-    public void lockingInvalidRangePreservesUnexpectedErrno() {
+    public void lockingInvalidRangeReportsNativeFailure() {
         if (Platform.getNativePlatform().getOS() == Platform.OS.LINUX) {
             assertFalse(api.mlock(0, 1));
             assertNotEquals(0, api.lastError());
         }
-        // Darwin can successfully wire its reserved PAGEZERO region. An address
-        // range that wraps is invalid on both systems, independent of mappings.
-        PosixRuntimeException invalid = assertThrows(PosixRuntimeException.class, () -> api.mlock(-1L, 2));
-        assertEquals(Errno.EINVAL.intValue(), invalid.errno());
+        // Kernels may reject a wrapping range as EINVAL, ENOMEM or EPERM.
+        // MlockResultTest checks each errno's Java contract without native assumptions.
+        assertInvalidLock(() -> api.mlock(-1L, 2));
         Platform.OS os = Platform.getNativePlatform().getOS();
         if (os == Platform.OS.LINUX || os == Platform.OS.DARWIN) {
-            PosixRuntimeException onFault = assertThrows(PosixRuntimeException.class,
-                    () -> api.mlock2(-1L, 2, true));
-            assertEquals(Errno.EINVAL.intValue(), onFault.errno());
+            assertInvalidLock(() -> api.mlock2(-1L, 2, true));
         } else {
             assertFalse(api.mlock2(-1L, 2, true));
+        }
+    }
+
+    private void assertInvalidLock(BooleanSupplier lock) {
+        try {
+            assertFalse("A wrapping address range must not be locked", lock.getAsBoolean());
+            int errno = api.lastError();
+            assertTrue("Unexpected native errno: " + errno,
+                    errno == Errno.ENOMEM.intValue() || errno == Errno.EPERM.intValue()
+                            || errno == Errno.EAGAIN.intValue() || errno == Errno.ENOSYS.intValue());
+        } catch (PosixRuntimeException invalid) {
+            assertEquals(Errno.EINVAL.intValue(), invalid.errno());
         }
     }
 
