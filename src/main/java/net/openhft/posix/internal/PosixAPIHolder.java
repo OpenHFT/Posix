@@ -31,6 +31,19 @@ public class PosixAPIHolder {
         if (POSIX_API != null)
             return;
 
+        // Native loaders unpack libraries through interruptible file channels. A caller
+        // arriving during shutdown must not permanently poison their static initialisers.
+        boolean interrupted = Thread.interrupted();
+        try {
+            loadRequestedProvider();
+        } finally {
+            if (interrupted)
+                Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void loadRequestedProvider() {
+
         String requested = System.getProperty("chronicle.posix.provider", "auto");
         if (!"auto".equals(requested)) {
             if ("noop".equals(requested)) {
