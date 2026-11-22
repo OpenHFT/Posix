@@ -272,4 +272,41 @@ public class WindowsContractTest {
             assertTrue(expected.getMessage().contains("not available"));
         }
     }
+
+    @Test
+    public void mappingsPersistAndPrivateCopiesDoNot() throws Exception {
+        Path file = Files.createTempFile("posix-map", ".dat");
+        int fd = api.open(file.toString(), OpenFlag.O_RDWR, 0600);
+        long view = -1;
+        try {
+            assertEquals(0, api.ftruncate(fd, 131072));
+            assertEquals(-1, api.mmap(0, 4096, 3, 1, fd, 1));
+            assertEquals(22, api.lastError());
+            view = api.mmap(0, 4096, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 65536);
+            assertTrue(api.lastErrorStr(), view != 0 && view != -1);
+            assertEquals(0, api.close(fd));
+            fd = -1;
+            UNSAFE.putByte(view, (byte) 71);
+            assertEquals(0, api.msync(view, 4096, MSyncFlag.MS_SYNC));
+            assertEquals(71, Files.readAllBytes(file)[65536]);
+            assertEquals(-1, api.munmap(view, 2048));
+            int advice = api.madvise(view, 4096, MAdviseFlag.MADV_WILLNEED);
+            assertTrue(advice == 0 || api.lastError() != 0);
+            boolean locked = api.mlock2(view, 4096, false);
+            assertTrue(locked || api.lastError() != 0);
+            assertEquals(0, api.munmap(view, 4096));
+            assertEquals(-1, api.munmap(view, 4096));
+            view = -1;
+            fd = api.open(file.toString(), OpenFlag.O_RDONLY, 0);
+            view = api.mmap(0, 4096, 3, 2, fd, 65536);
+            assertTrue(api.lastErrorStr(), view != 0 && view != -1);
+            UNSAFE.putByte(view, (byte) 99);
+            assertEquals(0, api.msync(view, 4096, 4));
+            assertEquals(71, Files.readAllBytes(file)[65536]);
+        } finally {
+            if (view != -1 && view != 0) api.munmap(view, 4096);
+            if (fd >= 0) api.close(fd);
+            Files.deleteIfExists(file);
+        }
+    }
 }
