@@ -6,6 +6,10 @@
 
 == Scope
 
+This is the initial defect assessment. Subsequent FIX-292 work implements
+the supported subset documented in windows-capabilities.adoc. Refer to
+windows-qualification.adoc for current test results and remaining limitations.
+
 Assessment on 14 November 2026, starting from commit
 `790c9e0c7c61aa9b64c378f9323f39531993b5a2`, on native Windows x64.
 The Windows provider remains a partial implementation. A passing test suite

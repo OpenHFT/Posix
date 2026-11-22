@@ -6,10 +6,11 @@
 == Selection and requirements
 
 Windows providers require a 64-bit Windows JVM. The Java 8 core supplies JNR
-(automatic selection) and JNA. Set `chronicle.posix.provider` to `jnr`, `jna`,
+(automatic selection) and JNA. Set `chronicle.posix.provider` to `jnr`, `jna`, `jna-direct`,
 `noop` or `ffm` to request a provider. Explicit requests never silently fall
 back. FFM requires Java 22+ and a separately built optional artifact.
-JNA currently uses interface mapping; no zero-allocation claim is made.
+JNA interface and direct mapping are both available; no blanket zero-allocation
+claim is made. See windows-qualification.adoc for measured allocation rates.
 
 == Implemented contracts
 

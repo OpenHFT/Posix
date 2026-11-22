@@ -1,96 +1,55 @@
 = Posix
 :toc:
+:sectnums:
 :lang: en-GB
 :source-highlighter: rouge
-Peter Lawrey, 31/08/2021
-:toc:
-:icons: font
-:lang: en-GB
-:encoding: ISO-8859-1
-:source-highlighter: rouge
 
-[abstract]
-The _OpenHFT Posix_ module is a zero-GC, low-latency Java façade over a **portable subset of POSIX/Linux system calls**, with provider fall-back to JNR, JNA or raw/reflective variants.
-Chronicle components rely on it for deterministic file-IO, memory-mapping and CPU-affinity operations that the JDK does not expose.
+OpenHFT Posix exposes a subset of native file, memory, clock and affinity
+operations. The core library compiles and runs on Java 8. Native pointers
+remain the caller's responsibility; this is not a memory-safe sandbox.
 
-Audience: Internal, Stability: Stable
+== Providers
 
-== Quick start
-
-.Gradle / Maven
-[source,xml,subs=+quotes]
-----
-<dependency>
-  <groupId>net.openhft</groupId>
-  <artifactId>posix</artifactId>
-  <version>{project-version}</version>
-</dependency>
-----
-
-Simple usage:
-
-[source,java]
-----
-PosixAPI posix = PosixAPI.posix();
-long addr      = posix.mmap(0, 4096,
-                           MMapProt.PROT_READ_WRITE.value(),
-                           MMapFlag.PRIVATE.value(),
-                           fd, 0);
-...
-posix.munmap(addr, 4096);
-----
-
-== Design goals
-
-* _Determinism_ – no heap allocation on the hot path.
-* _Portability_ – Linux/macOS/Windows support via provider auto-selection.
-* _Fallback safety_ – `NoOpPosixAPI` guarantees compilation in CI sandboxes.
-* _Traceability_ – every public constant links to POSIX-FN requirements.
-
-== Provider selection & fall-back
-
-[cols="1,1,3"]
+[cols="1,2,3",options="header"]
 |===
-| Provider | Native layer | Typical when…
-
-| `JNRPosixAPI`      | JNR-FFI      | **Linux** & x86_64/ARM, fastest syscalls
-| `WinJNRPosixAPI`   | JNR-FFI      | **Windows** equivalents (subset)
-| `JNAPosixAPI`      | JNA          | exotic/legacy platforms
-| `RawPosixAPI`      | Reflection   | JVM ≥ 21 with `--add-opens`
-| `NoOpPosixAPI`     | —            | CI sandboxes / Graal native-image
+| Selection | Provider | Availability
+| auto / jnr | JNRPosixAPI or WinJNRPosixAPI | Unix or Windows native calls; auto may fall back to NoOp on load failure.
+| jna | WinJNAPosixAPI | Windows x64 JNA interface mappings.
+| jna-direct | WinJNADirectPosixAPI | Windows x64 JNA direct mappings.
+| ffm | WinFFMPosixAPI | Windows x64, optional posix-ffm artifact, Java 22+.
+| noop | NoOpPosixAPI | Explicitly disabled native provider.
 |===
 
-`-Dchronicle.posix.provider=` *provider-name* overrides the auto-choice.
+Use `-Dchronicle.posix.provider=jna` (or another selection above). Explicit
+requests fail clearly if unavailable; they do not silently select NoOp.
+The old abstract JNAPosixAPI and RawPosixAPI classes are not complete providers.
+FFM uses final APIs, not Java 21 preview features. See
+link:posix-ffm/README.adoc[FFM build and deployment instructions].
 
-== Supported system calls
+== Windows contracts
 
-[cols="1,3,1,2"]
-|===
-| Area | Functions | Return model | Notes
+See link:src/main/docs/windows-capabilities.adoc[the supported subset and
+unavailable modes]. JNR, JNA interface/direct and FFM use common Windows
+semantics and the same contract tests, including all 43 public signatures.
 
-| File-IO
-| `open`, `close`, `ftruncate`, `lseek`, `read`, `write`, `lockf`
-| 0 / FD / bytes | `errno` surfaced via `PosixRuntimeException`
+Supported operations include binary/Unicode file I/O, 64-bit seek/truncate,
+mode-zero file allocation, shared/private file mappings, synchronous flush,
+selected clocks, positive-length byte-range locks and single-group affinity.
+Unavailable modes return documented failures; the legacy void mlockall is
+explicitly an unavailable no-op. Windows mandatory locks differ from POSIX
+advisory locks. Disk usage returns allocated KiB.
 
-| Memory
-| `mmap`, `munmap`, `madvise`, `msync`, `mlock*`, `fallocate`
-| addr / 0        | `MAP_FAILED` → -1 sentinel
+Native failure usually returns -1 (false for page locking); inspect
+`lastError()` / `lastErrorStr()`. Invalid/unsupported clock IDs throw
+IllegalArgumentException. See individual provider contracts for exceptions.
 
-| CPU-affinity
-| `sched_*affinity*`, helpers `sched_setaffinity_as` …
-| 0               | portable bit-mask helpers
+== Build and tests
 
-| Timing
-| `clock_gettime`, `gettimeofday`
-| ns / µs         | falls back to `System.nanoTime` on JDK < 17
-|===
+With JDK 8 or a supported later JDK:
 
-== Build & test
-
-[source,bash]
+[source,shell]
 ----
-# run unit tests + Checkstyle + spot-bugs
-mvn -q verify
+mvn -B clean verify
 ----
 
 `ProcMapsEdgeCaseTest` uses an in-memory maps fixture, so parsing boundaries are
@@ -102,32 +61,44 @@ Environment variables:
 * `POSIX_TEST_ALLOW_NATIVE` – set to *false* in CI to force `NoOpPosixAPI`.
 * `POSIX_SYSLOG_LEVEL` – adjust logging noise during native provider load.
 
-== Troubleshooting
+The optional FFM artifact is a separate build and does not participate in
+the default Java 8 build. To build it, first install the core, then select
+JDK 22+ and run:
 
-[%collapsible]
-.Why do I get `PosixRuntimeException: EPERM` on `mlockall`?
-====
-The process exceeded its `RLIMIT_MEMLOCK`.
-On Linux:
+[source,shell]
+----
+mvn -B -f posix-ffm/pom.xml clean verify
+----
 
-[source,bash]
-ulimit -l unlimited     # or edit /etc/security/limits.conf
-====
+The optional `quality` profile runs the shared Checkstyle/SpotBugs rules
+and requires access to the configured chronicle-quality-rules artifact.
+Normal verify does not imply this optional profile passed.
 
-[%collapsible]
-.Native provider fails to load on JDK 17+
-====
-Add JVM arg:
+== Performance and qualification
 
-[source]
---add-opens java.base/jdk.internal.misc=ALL-UNNAMED
-====
+Zero allocation is a design objective, not a guarantee for all bindings.
+See link:src/main/docs/windows-qualification.adoc[local qualification and
+exploratory JMH results]. JNA interface/direct, JNR and FFM have different
+dispatch/allocation costs. JNR remains the default; FFM is opt-in.
 
-[%collapsible]
+The Windows CI matrix covers Java 8, 11, 17, 21 and 25 for the core, plus
+22/25 for FFM. Linux/macOS regression jobs cover shared changes. Only report
+a platform as qualified after the corresponding results pass.
 
-== Further reading
+== Unix qualification
 
-* link:src/main/docs/project-requirements.adoc[Functional requirements]
-* link:src/main/docs/decision-log.adoc[Architecture decision log]
-* link:https://man7.org/linux/man-pages/[Linux man-pages]
+The JNR Unix provider translates the public `OpenFlag` values and Darwin seek constants
+at the native boundary. Mapping and affinity failures return their native failure value
+with thread-local errno; memory locking returns false on failure. Unknown Linux syscall
+architectures report ENOSYS. Mapping inode numbers retain unsigned 64-bit bits.
+`du` returns allocated KiB independent of POSIXLY_CORRECT and rejects a failed command.
 
+CI includes native Linux x86_64/AArch64 and macOS Intel/ARM64 JDK 21 jobs, plus JDK 25
+benchmark discovery and a bounded Linux smoke. These jobs are qualification requirements,
+not a claim of local execution on those platforms. Windows ARM64 remains unqualified
+until JNR/JNA native loading and the provider contract suite pass on that runner.
+
+Darwin can report successful `mlock` for its reserved zero-address region; the Linux
+null-address failure assertion is therefore Linux-specific. The common error test uses
+an overflowing address range and still requires failure plus errno on both systems.
+Lock-on-fault is Linux-specific and returns ENOSYS elsewhere.
