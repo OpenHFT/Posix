@@ -182,9 +182,14 @@ public interface PosixAPI {
      * fail if the operating system does not support memory locking or the
      * process exceeds its {@code RLIMIT_MEMLOCK} limit.
      *
+     * The JNR provider performs the native call on every JVM vendor. Expected
+     * permission, resource, transient and unsupported-operation failures return
+     * {@code false}; invalid ranges and other unexpected native errors throw.
+     *
      * @param addr   start address
      * @param length number of bytes to lock
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock(long addr, long length) {
         return false;
@@ -197,11 +202,14 @@ public interface PosixAPI {
      * {@code mlock} and also include lack of kernel support for {@code mlock2}.
      * The JNR provider returns {@code false} for Linux {@code ENOSYS}; on macOS,
      * where {@code mlock2} is absent, it performs an eager {@code mlock} instead.
+     * Invalid ranges and other unexpected JNR errors are reported as exceptions,
+     * consistently with {@code mlock}.
      *
      * @param addr        start address
      * @param length      number of bytes to lock
      * @param lockOnFault defer locking until the memory is touched
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock2(long addr, long length, boolean lockOnFault) {
         return false;
