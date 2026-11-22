@@ -39,6 +39,9 @@ public final class WindowsJNRNative implements WindowsNative {
     }
 
     public interface Kernel {
+        int GetFileInformationByHandleEx(
+                @uintptr_t long handle, int type, @uintptr_t long info, int length);
+
         int GetCurrentThreadId();
 
         int GetActiveProcessorCount(int a0);
@@ -301,5 +304,10 @@ public final class WindowsJNRNative implements WindowsNative {
     @Override
     public int winError() {
         return jnr.ffi.Runtime.getRuntime(k).getLastError();
+    }
+
+    @Override
+    public int GetFileInformationByHandleEx(long handle, int type, long info, int length) {
+        return k.GetFileInformationByHandleEx(handle, type, info, length);
     }
 }
