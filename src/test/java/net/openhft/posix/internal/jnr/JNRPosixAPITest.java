@@ -224,7 +224,7 @@ public class JNRPosixAPITest {
 
     @Test
     public void setaffinity() {
-        assumeTrue("Windows and macOS doesn't support 'setaffinity'", isUnix() && !isMacOSX());
+        assumeFalse("macOS does not support this affinity facade", isMacOSX());
 
         int gettid = jnr.gettid();
         int count = jnr.get_nprocs_conf();
@@ -232,6 +232,12 @@ public class JNRPosixAPITest {
         long original = jnr.malloc(size);
         boolean captured = false;
         try {
+            assertNotEquals(0L, original);
+            if (!isUnix() && count > 64) {
+                assertEquals(-1, jnr.sched_getaffinity(gettid, size, original));
+                assertEquals(40, jnr.lastError());
+                return;
+            }
             assertEquals(0, jnr.sched_getaffinity(gettid, size, original));
             captured = true;
             int cpu = 0;
@@ -242,8 +248,11 @@ public class JNRPosixAPITest {
             assertEquals(cpu + "-" + cpu, jnr.sched_getaffinity_summary(gettid));
             assertEquals(0, jnr.sched_setaffinity_range(gettid, cpu, cpu));
         } finally {
-            if (captured) assertEquals(0, jnr.sched_setaffinity(gettid, size, original));
-            jnr.free(original);
+            try {
+                if (captured) assertEquals(0, jnr.sched_setaffinity(gettid, size, original));
+            } finally {
+                jnr.free(original);
+            }
         }
     }
 
