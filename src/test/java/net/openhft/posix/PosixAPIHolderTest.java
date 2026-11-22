@@ -24,8 +24,14 @@ public class PosixAPIHolderTest {
 
     @Test
     public void useNoOpPosixApiSwitchesToNoOp() {
-        PosixAPIHolder.useNoOpPosixApi();
-        assertTrue(PosixAPIHolder.POSIX_API instanceof NoOpPosixAPI);
+        PosixAPIHolder.loadPosixApi();
+        final PosixAPI original = PosixAPIHolder.POSIX_API;
+        try {
+            PosixAPIHolder.useNoOpPosixApi();
+            assertTrue(PosixAPIHolder.POSIX_API instanceof NoOpPosixAPI);
+        } finally {
+            PosixAPIHolder.POSIX_API = original;
+        }
     }
 
     @Test
