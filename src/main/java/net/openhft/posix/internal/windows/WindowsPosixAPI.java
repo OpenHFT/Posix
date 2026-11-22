@@ -339,6 +339,78 @@ public class WindowsPosixAPI implements PosixAPI {
     }
 
     @Override
+    public int flushMappedView(long addr, long length) {
+        if (addr <= 0 || length <= 0 || addr > Long.MAX_VALUE - length) return fail(EINVAL);
+        return nativeApi.FlushViewOfFile(addr, length) != 0 ? 0 : winFail();
+    }
+
+    @Override
+    public FileSync retainFileSync(java.io.FileDescriptor descriptor) throws IOException {
+        if (descriptor == null) throw new IOException("Missing file descriptor");
+        final long handle;
+        try {
+            long offset =
+                    UNSAFE.objectFieldOffset(
+                            java.io.FileDescriptor.class.getDeclaredField("handle"));
+            handle = UNSAFE.getLong(descriptor, offset);
+        } catch (ReflectiveOperationException e) {
+            throw new IOException("Cannot obtain Windows file handle", e);
+        }
+        if (!descriptor.valid() || handle == -1 || handle == 0)
+            throw new IOException("Closed Windows file descriptor");
+        RetainedFileSync result = new RetainedFileSync(0);
+        long scratch = malloc(8);
+        try {
+            long process = nativeApi.GetCurrentProcess();
+            if (nativeApi.DuplicateHandle(process, handle, process, scratch, 0, 0, 2) == 0) {
+                winFail();
+                throw new IOException("DuplicateHandle failed: " + lastError());
+            }
+            result.handle = UNSAFE.getLong(scratch);
+            return result;
+        } finally {
+            free(scratch);
+        }
+    }
+
+    private final class RetainedFileSync implements FileSync {
+        private long handle;
+
+        RetainedFileSync(long handle) {
+            this.handle = handle;
+        }
+
+        @Override
+        public synchronized void force() throws IOException {
+            if (handle == 0) throw new IOException("Retained file handle closed");
+            if (nativeApi.FlushFileBuffers(handle) == 0) {
+                winFail();
+                throw new IOException("FlushFileBuffers failed: " + lastError());
+            }
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            if (handle == 0) return;
+            long releasing = handle;
+            handle = 0;
+            if (nativeApi.CloseHandle(releasing) == 0) {
+                winFail();
+                throw new IOException("CloseHandle failed: " + lastError());
+            }
+        }
+    }
+
+    @Override
+    public boolean prefetchMappedView(long addr, long length) {
+        if (addr <= 0 || length <= 0 || addr > Long.MAX_VALUE - length) {
+            fail(EINVAL);
+            return false;
+        }
+        return madvise(addr, length, 3) == 0;
+    }
+
+    @Override
     public int madvise(long addr, long length, int advice) {
         if (advice != 3) return fail(ENOSYS);
         if (addr == 0 || length <= 0) return fail(EINVAL);
