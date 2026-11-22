@@ -375,7 +375,7 @@ public interface PosixAPI {
      */
     default String sched_getaffinity_summary(int pid) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         boolean set = false;
         int start = 0;
@@ -385,8 +385,8 @@ public interface PosixAPI {
             if (ret != 0)
                 return "na: " + lastError();
             for (int i = 0; i < nprocs_conf; i++) {
-                final int b = UNSAFE.getInt(ptr + i / 32);
-                if (((b >> i) & 1) != 0) {
+                final int b = UNSAFE.getByte(ptr + i / 8);
+                if (((b >> (i & 7)) & 1) != 0) {
                     if (!set) {
                         start = i;
                         set = true;
@@ -427,7 +427,9 @@ public interface PosixAPI {
      */
     default int sched_setaffinity_as(int pid, int cpu) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        if (cpu < 0 || cpu >= nprocs_conf)
+            throw new IllegalArgumentException("CPU outside configured range: " + cpu);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
@@ -453,15 +455,17 @@ public interface PosixAPI {
      */
     default int sched_setaffinity_range(int pid, int from, int to) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        if (from < 0 || to < from || to >= nprocs_conf)
+            throw new IllegalArgumentException("Invalid inclusive CPU range: " + from + "-" + to);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
                 UNSAFE.putInt(ptr + i, 0);
 
             for (int i = from; i <= to; i++) {
-                UNSAFE.putInt(ptr + i / 32,
-                        UNSAFE.getInt(ptr + i / 32) | (1 << i));
+                UNSAFE.putByte(ptr + i / 8,
+                        (byte) (UNSAFE.getByte(ptr + i / 8) | (1 << (i & 7))));
             }
             return sched_setaffinity(pid, size, ptr);
         } finally {

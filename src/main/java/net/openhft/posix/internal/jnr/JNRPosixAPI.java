@@ -112,7 +112,7 @@ public final class JNRPosixAPI implements PosixAPI {
 
     @Override
     public long lseek(int fd, long offset, int whence) {
-        return jnr.lseek(fd, offset, whence);
+        return jnr.lseek(fd, offset, UnixConstants.whence(whence, OS.isMacOSX()));
     }
 
     @Override

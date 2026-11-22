@@ -185,6 +185,9 @@
                         </executions>
                         <configuration>
                             <configLocation>net/openhft/quality/checkstyle27/chronicle-baseline-checkstyle.xml</configLocation>
+                            <!-- Preserve the shared test exceptions and add native-symbol naming only. -->
+                            <suppressionsLocation>${project.basedir}/src/main/quality/checkstyle-suppressions.xml</suppressionsLocation>
+                            <suppressionsFileExpression>chronicle.checkstyle.suppressions.tests</suppressionsFileExpression>
                             <failOnViolation>true</failOnViolation>
                             <logViolationsToConsole>true</logViolationsToConsole>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -215,7 +218,10 @@
                             <failOnError>true</failOnError>
                             <!-- Shared SpotBugs filters from chronicle-quality-rules -->
                             <includeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-include.xml</includeFilterFile>
-                            <excludeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-exclude.xml</excludeFilterFile>
+                            <excludeFilterFiles>
+                                <excludeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-exclude.xml</excludeFilterFile>
+                                <excludeFilterFile>${project.basedir}/src/main/quality/spotbugs-native-symbols.xml</excludeFilterFile>
+                            </excludeFilterFiles>
                         </configuration>
                         <dependencies>
                             <dependency>

@@ -240,16 +240,27 @@ public class JNRPosixAPITest {
 
     @Test
     public void clocks() {
-        assumeTrue(isUnix());
-
         for (ClockId value : ClockId.values()) {
+            if (!isUnix() && value.value() > 3) {
+                assertThrows(IllegalArgumentException.class, () -> jnr.clock_gettime(value));
+                continue;
+            }
             try {
+                long before = System.currentTimeMillis();
                 final long gettime = jnr.clock_gettime(value);
-                System.out.println(value + ": " + gettime);
+                if (value == ClockId.CLOCK_REALTIME) {
+                    assertTrue(gettime / 1_000_000 >= before - 1000);
+                    assertTrue(gettime / 1_000_000 <= System.currentTimeMillis() + 1000);
+                } else if (value == ClockId.CLOCK_MONOTONIC) {
+                    assertTrue(jnr.clock_gettime(value) >= gettime);
+                } else if (value == ClockId.CLOCK_PROCESS_CPUTIME_ID || value == ClockId.CLOCK_THREAD_CPUTIME_ID) {
+                    assertTrue(gettime >= 0);
+                }
             } catch (IllegalArgumentException e) {
-                System.out.println(value + ": " + e);
+                assertTrue("Required Windows clock unavailable: " + value, isUnix());
             }
         }
+        assertThrows(IllegalArgumentException.class, () -> jnr.clock_gettime(-1));
     }
 
     private static boolean isUnix() {
