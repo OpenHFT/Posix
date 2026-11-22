@@ -182,9 +182,14 @@ public interface PosixAPI {
      * fail if the operating system does not support memory locking or the
      * process exceeds its {@code RLIMIT_MEMLOCK} limit.
      *
+     * The JNR provider performs the native call on every JVM vendor. Expected
+     * permission, resource, transient and unsupported-operation failures return
+     * {@code false}; invalid ranges and other unexpected native errors throw.
+     *
      * @param addr   start address
      * @param length number of bytes to lock
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock(long addr, long length) {
         return false;
@@ -195,11 +200,16 @@ public interface PosixAPI {
      * first access when {@code lockOnFault} is {@code true}. The default
      * implementation returns {@code false}. Failure reasons mirror those of
      * {@code mlock} and also include lack of kernel support for {@code mlock2}.
+     * The JNR provider returns {@code false} for Linux {@code ENOSYS}; on macOS,
+     * where {@code mlock2} is absent, it performs an eager {@code mlock} instead.
+     * Invalid ranges and other unexpected JNR errors are reported as exceptions,
+     * consistently with {@code mlock}.
      *
      * @param addr        start address
      * @param length      number of bytes to lock
      * @param lockOnFault defer locking until the memory is touched
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock2(long addr, long length, boolean lockOnFault) {
         return false;
@@ -316,17 +326,33 @@ public interface PosixAPI {
      * @throws IOException if the child process fails
      */
     default long du(String filename) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("du", filename);
+        // Explicit KiB units are independent of POSIXLY_CORRECT/BLOCK_SIZE.
+        ProcessBuilder pb = new ProcessBuilder("du", "-k", "-s", "--",
+                new java.io.File(filename).getAbsolutePath());
         pb.redirectErrorStream(true);
         final Process process = pb.start();
         try (InputStream inputStream = process.getInputStream();
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              BufferedReader br = new BufferedReader(inputStreamReader)) {
+            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS))
+                throw new IOException("du timed out for " + filename);
             String line = br.readLine();
+            if (process.exitValue() != 0)
+                throw new IOException("du failed for " + filename + ": " + line);
             if (line == null) {
                 throw new IOException("du produced no output for " + filename);
             }
-            return Long.parseUnsignedLong(line.split("\\s+")[0]);
+            try {
+                return Long.parseUnsignedLong(line.trim().split("\\s+")[0]);
+            } catch (NumberFormatException invalid) {
+                throw new IOException("Invalid du output: " + line, invalid);
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for du", interrupted);
+        } finally {
+            if (process.isAlive())
+                process.destroyForcibly();
         }
     }
 
