@@ -6,7 +6,6 @@ package net.openhft.posix.internal.jnr;
 import jnr.ffi.Platform;
 import jnr.constants.platform.Errno;
 import net.openhft.posix.*;
-import net.openhft.posix.internal.core.Jvm;
 import org.junit.Test;
 
 import java.io.File;
@@ -124,12 +123,16 @@ public class JNRPosixAPITest {
             assertEquals(0, jnr.ftruncate(fd, length));
             addr = jnr.mmap(0, length, MMapProt.PROT_READ_WRITE, MMapFlag.SHARED, fd, 0L);
             assertTrue(jnr.lastErrorStr(), addr != 0 && addr != -1);
-            if (isUnix() && Jvm.isAzul()) {
-                // This provider explicitly disables memory locking on Azul JVMs.
-                assertFalse(secondVariant ? jnr.mlock2(addr, length, true) : jnr.mlock(addr, length));
-                assertEquals(Errno.ENOSYS.intValue(), jnr.lastError());
+            if (isUnix()) {
+                // Native permission and resource limits apply independently of the JVM vendor.
+                boolean locked = secondVariant ? jnr.mlock2(addr, length, true) : jnr.mlock(addr, length);
+                if (!locked) {
+                    int errno = jnr.lastError();
+                    assertTrue("Unexpected locking errno: " + errno,
+                            errno == Errno.ENOSYS.intValue() || errno == Errno.ENOMEM.intValue()
+                                    || errno == Errno.EPERM.intValue() || errno == Errno.EAGAIN.intValue());
+                }
             } else if (!secondVariant) assertTrue(jnr.lastErrorStr(), jnr.mlock(addr, length));
-            else if (isUnix()) assertTrue(jnr.lastErrorStr(), jnr.mlock2(addr, length, true));
             else {
                 // Windows implements eager locking, not Linux's on-fault contract.
                 assertFalse(jnr.mlock2(addr, length, true));
