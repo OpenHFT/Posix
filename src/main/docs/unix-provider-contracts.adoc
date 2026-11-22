@@ -10,8 +10,12 @@ syscalls; unsupported platforms return ENOSYS. The earlier contract change
 translates Darwin sparse-seek values at the native boundary.
 
 Mapping and affinity failures preserve their native return values and errno.
-Failed memory locks return false, including unavailable Azul locking; only
-explicit lock-on-fault requests require mlock2. Read both 64-bit timespec fields
+Memory locking runs on every JVM vendor. Permission, resource, transient and
+unsupported-operation failures return false; invalid ranges and unexpected
+native errors throw PosixRuntimeException with the captured errno. On macOS,
+mlock2 uses eager mlock even when lock-on-fault is requested. This adopts the
+memory-lock contract from PR #89 while preserving the native mapping and
+affinity return-value contracts here. Read both 64-bit timespec fields
 on 64-bit systems. These corrections are extracted from the provider
 qualification PR so Unix runtime behaviour can be reviewed independently.
 
