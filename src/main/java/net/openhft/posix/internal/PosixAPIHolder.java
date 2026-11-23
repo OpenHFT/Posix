@@ -11,6 +11,9 @@ import net.openhft.posix.internal.jna.WinJNAPosixAPI;
 import net.openhft.posix.internal.jna.WinJNADirectPosixAPI;
 import net.openhft.posix.internal.noop.NoOpPosixAPI;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
 /**
  * Holds the selected {@link PosixAPI} provider for this JVM.
  * <p>The fallback order is {@code JNRPosixAPI},
@@ -22,7 +25,7 @@ public class PosixAPIHolder {
 
     /**
      * Loads the fastest compatible provider into {@link #POSIX_API}.
-     * Not thread-safe while {@link #POSIX_API} is {@code null}.
+     * Serialises first use and preserves caller interrupts throughout native loading.
      * Providers are tried in the order {@code JNRPosixAPI},
      * {@code WinJNRPosixAPI} then {@code NoOpPosixAPI}
      * (see POSIX-FN-002).
@@ -31,11 +34,33 @@ public class PosixAPIHolder {
         if (POSIX_API != null)
             return;
 
-        // Native loaders unpack libraries through interruptible file channels. A caller
-        // arriving during shutdown must not permanently poison their static initialisers.
+        runWithoutInterruption(PosixAPIHolder::loadRequestedProvider);
+    }
+
+    static void runWithoutInterruption(Runnable action) {
+        // An interrupt arriving during extraction can poison native static initialisers.
+        // Isolate the first load from shutdown interrupts on its caller.
+        FutureTask<Void> load = new FutureTask<>(action, null);
+        Thread loader = new Thread(load, "chronicle-posix-init");
+        loader.setDaemon(true);
         boolean interrupted = Thread.interrupted();
         try {
-            loadRequestedProvider();
+            loader.start();
+            for (;;) {
+                try {
+                    load.get();
+                    return;
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof Error)
+                        throw (Error) cause;
+                    if (cause instanceof RuntimeException)
+                        throw (RuntimeException) cause;
+                    throw new IllegalStateException("Native provider initialisation failed", cause);
+                }
+            }
         } finally {
             if (interrupted)
                 Thread.currentThread().interrupt();
@@ -47,7 +72,8 @@ public class PosixAPIHolder {
         String requested = System.getProperty("chronicle.posix.provider", "auto");
         if (!"auto".equals(requested)) {
             if ("noop".equals(requested)) {
-                useNoOpPosixApi();
+                // The caller holds the holder monitor while waiting for this loader.
+                POSIX_API = new NoOpPosixAPI("Explicitly disabled");
                 return;
             }
             if ("jnr".equals(requested)) {
