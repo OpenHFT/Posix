@@ -23,7 +23,7 @@ public interface Kernel32JNRInterface {
      * @param addr Address of a SYSTEM_INFO structure.
      * @see <a href="https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getnativesysteminfo">GetNativeSystemInfo</a>
      */
-    void GetNativeSystemInfo(long addr);
+    void GetNativeSystemInfo(@jnr.ffi.types.uintptr_t long addr);
 
     //CHECKSTYLE:ON MethodName
 }

@@ -80,6 +80,13 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution><id>windows-contract-tests</id><goals><goal>test-jar</goal></goals></execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <failOnWarning>false</failOnWarning>
@@ -88,6 +95,59 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>chronicle-ci-policy</id>
+            <activation>
+                <property>
+                    <name>chronicle.ci.mode</name>
+                </property>
+            </activation>
+            <properties>
+                <chronicle.ci.forks.max1>1</chronicle.ci.forks.max1>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <forkCount>${chronicle.ci.forks.max1}</forkCount>
+                                    <rerunFailingTestsCount>0</rerunFailingTestsCount>
+                                    <runOrder>alphabetical</runOrder>
+                                    <reportsDirectory>${project.build.directory}/ci-reports/surefire/default-test</reportsDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <forkCount>${chronicle.ci.forks.max1}</forkCount>
+                            <rerunFailingTestsCount>0</rerunFailingTestsCount>
+                            <runOrder>alphabetical</runOrder>
+                            <reportsDirectory>${project.build.directory}/ci-reports/surefire/default-cli</reportsDirectory>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>chronicle-ci-build-all-budget</id>
+            <activation>
+                <property>
+                    <name>chronicle.ci.mode</name>
+                    <value>build-all</value>
+                </property>
+            </activation>
+            <properties>
+                <chronicle.ci.forks.max1>1</chronicle.ci.forks.max1>
+            </properties>
+        </profile>
+
         <profile>
             <id>java11</id>
             <activation>
@@ -131,11 +191,14 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <configLocation>${checkstyle.config.location}</configLocation>
+                            <configLocation>net/openhft/quality/checkstyle27/chronicle-baseline-checkstyle.xml</configLocation>
+                            <!-- Preserve the shared test exceptions and add native-symbol naming only. -->
+                            <suppressionsLocation>${project.basedir}/src/main/quality/checkstyle-suppressions.xml</suppressionsLocation>
+                            <suppressionsFileExpression>chronicle.checkstyle.suppressions.tests</suppressionsFileExpression>
                             <failOnViolation>true</failOnViolation>
                             <logViolationsToConsole>true</logViolationsToConsole>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <violationSeverity>${checkstyle.violationSeverity}</violationSeverity>
+                            <violationSeverity>warning</violationSeverity>
                         </configuration>
                         <dependencies>
                             <dependency>
@@ -162,7 +225,10 @@
                             <failOnError>true</failOnError>
                             <!-- Shared SpotBugs filters from chronicle-quality-rules -->
                             <includeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-include.xml</includeFilterFile>
-                            <excludeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-exclude.xml</excludeFilterFile>
+                            <excludeFilterFiles>
+                                <excludeFilterFile>net/openhft/quality/spotbugs27/chronicle-spotbugs-exclude.xml</excludeFilterFile>
+                                <excludeFilterFile>${project.basedir}/src/main/quality/spotbugs-native-symbols.xml</excludeFilterFile>
+                            </excludeFilterFiles>
                         </configuration>
                         <dependencies>
                             <dependency>

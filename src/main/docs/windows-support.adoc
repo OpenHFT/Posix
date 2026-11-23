@@ -1,0 +1,113 @@
+= Windows Support and Test Coverage
+:toc:
+:sectnums:
+:lang: en-GB
+:source-highlighter: rouge
+
+== Scope
+
+This is the initial defect assessment. Subsequent FIX-292 work implements
+the supported subset documented in windows-capabilities.adoc. Refer to
+windows-qualification.adoc for current test results and remaining limitations.
+
+Assessment on 14 November 2026, starting from commit
+`790c9e0c7c61aa9b64c378f9323f39531993b5a2`, on native Windows x64.
+The Windows provider remains a partial implementation. A passing test suite
+does not establish parity with Linux. Requirement: POSIX-TEST-013.
+See link:windows-pr-plan.adoc[the ordered PR plan and complete method/test matrix].
+
+== Implemented file-I/O corrections
+
+* Annotate native pointers as pointer-sized integers, 64-bit offsets as
+`LongLong`, and read/write results as signed 32-bit integers. Windows uses
+32-bit C `long` even in a 64-bit process.
+* Open byte streams in binary mode to preserve LF, CRLF and Ctrl-Z.
+* Implement `ftruncate` using `_chsize_s`, returning zero or minus one.
+* Read the CRT's thread-local `_errno`, rather than Win32 `GetLastError`.
+* Reject negative I/O lengths and cap each native read/write request at
+`Integer.MAX_VALUE`; callers must handle short transfers as usual.
+
+The initial binary round-trip crashed its forked JVM with exit code
+`-1073741819`. Separate baseline tests demonstrated a seek of 4294967419
+returning 123, successful truncation leaving an empty file at zero bytes,
+and successful truncation of an invalid descriptor. The new regression
+tests exercise actual file contents and sizes, not only return codes.
+
+== Significant remaining coverage gaps
+
+[cols="1,3,4",options="header"]
+|===
+| Priority | Gap and evidence | Required coverage/improvement
+| High
+| `mmap`, `munmap`, `msync` and `fallocate` are success-returning stubs.
+The existing mapping tests require `/proc/self` and skip Windows.
+Local probes returned zero for mapping an invalid descriptor, syncing
+address zero and allocating an invalid descriptor.
+| First establish explicit unsupported-operation failures. Then implement
+Win32 mappings with correct handle ownership, allocation granularity,
+offset alignment, sharing/copy-on-write and flush semantics. Use child
+processes for pointer tests; verify persisted bytes and handle cleanup.
+Do not dereference a returned zero address.
+| High
+| Open flag translation is untested. A local `O_CREAT` probe returned -1
+without creating a file; `O_TRUNC` returned a descriptor but left size 3.
+| Translate the public flags to CRT constants; test create, exclusive create,
+truncate, append, combinations, invalid flags, permissions and non-ASCII
+paths. The existing enum values must not be assumed to be CRT values.
+| High
+| The existing `open` test only checks the return from `ftruncate` on
+Windows. There were no native binary read/write tests or large seek tests.
+| Seven new Windows regression tests cover the corrections above, including
+EOF, zero-length write, read-only failure and cross-thread errno isolation.
+Still needed: mocked native-boundary tests for requests above INT_MAX,
+large file truncation, partial writes, disk-full behaviour and concurrent I/O.
+| Medium
+| The `clocks` test skips Windows and only prints results on Unix.
+Windows ignores every clock ID; a local invalid-ID probe returned epoch time.
+| Test rejection of invalid/unsupported IDs and distinguish wall clock,
+monotonic elapsed time and CPU time. Implement monotonic time with an
+appropriate monotonic source; do not promise nanosecond resolution merely
+because the API returns nanoseconds.
+| Medium
+| Affinity tests skip Windows; lock methods have little or no semantic
+coverage. Some unsupported calls return -1 without setting errno.
+| Test explicit unsupported behaviour and error freshness. For native
+support, test lock contention across processes and affinity restoration,
+including systems with more than 64 logical CPUs.
+| Medium
+| Native provider selection, load failure and ABI variation are insufficiently
+covered. No GitHub Actions workflow is present in this checkout.
+| Assert the actual Windows provider in an isolated JVM. Add Windows x64 CI
+across supported JDKs, plus ARM64/32-bit only if support is claimed. Exercise
+Unicode paths, missing libraries and pointer-width-sensitive bindings,
+including the unused `GetNativeSystemInfo` binding.
+|===
+
+This is a behavioural coverage audit, not a line-coverage percentage.
+Tests skipped by OS guards and calls without assertions can otherwise give
+a misleading impression of coverage. Linux/macOS execution and Windows
+ARM64/32-bit remain outside this local validation.
+
+== Native contracts
+
+* https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/chsize-s[Microsoft _chsize_s]:
+64-bit file size and CRT error return.
+* https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/read[Microsoft _read]
+and https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/write[_write]:
+signed int results, unsigned int counts and text-mode translation.
+* https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/open-wopen[Microsoft _open]:
+binary/text modes and CRT open flags.
+
+== Reproduction
+
+Select a supported Windows JDK and run from the repository root:
+
+[source,shell]
+----
+mvn -B -Dtest=WinJNRPosixAPITest test
+mvn -B clean verify
+----
+
+The Windows-specific tests use temporary files and release descriptors and
+off-heap memory in finally blocks. The large seek test does not write at
+the distant offset or allocate a multi-gigabyte file.

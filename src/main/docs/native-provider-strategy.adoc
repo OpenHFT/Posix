@@ -1,0 +1,161 @@
+= Native Provider Strategy with Java 8 Compatibility
+:toc:
+:sectnums:
+:lang: en-GB
+:source-highlighter: rouge
+
+== Agreed direction
+
+Keep `posix` source and its normal build compatible with JDK 8. Develop an
+optional, separate `posix-ffm` artifact for Java 22+ using the final Foreign
+Function and Memory API (Project Panama). Java 8-21 continues to use JNR or
+JNA. Do not require Java 21 preview features. Agreement recorded 14 November
+2026. The optional FFM provider and both JNA mappings are now implemented;
+see windows-qualification.adoc for current results. The design rationale
+below retains the original trade-offs.
+
+== Current implementation and local evidence
+
+Before FIX-292 the repository selected JNR on Unix and WinJNR on other platforms,
+falling back to NoOp on load failure. It did not select JNA. `JNAPosixAPI`
+is abstract with only an mmap implementation; `RawPosixAPI` is an empty
+abstract base. Documentation must not advertise these as working providers.
+
+The local dependency set uses JNA/JNA-platform 5.5.0 and JNR-FFI 2.2.15.
+Qualification applies to these resolved versions, not arbitrary newer ones.
+The compiled PosixAPI class was checked as class-file major 52 (Java 8).
+The local file-I/O candidate also passed Maven clean verify using actual
+Zulu JDK 8: 38 tests, zero failures/errors, eight platform skips. Earlier
+JDK 17 and 21 runs passed with the same totals. This validates the current
+patch's baseline, not the future optional provider build.
+
+A standalone JNA probe on JDK 21 passed nine checks: Unicode path creation,
+binary write, rewind, binary read, seek beyond 4 GiB, truncation, preserved
+position, CRT errno and matching JNA/JNR process IDs. It uses msvcrt and
+JNA's Kernel32 bindings. This is not yet a complete JNA provider or parity
+suite. A JDK 25 FFM probe successfully called GetCurrentProcessId and matched
+the JVM's process ID. It is only a downcall feasibility check, not a file-I/O
+test or performance comparison. No JNI/JavaCPP/SWIG implementation was tested.
+
+== Options
+
+[cols="1,3,4",options="header"]
+|===
+| Binding | Strength and cost | Decision
+| JNR-FFI
+| Existing provider and primitive-oriented calls. Explicit native-width
+annotations and platform ABI validation remain necessary; jffi is a native dependency.
+| Retain and repair. Use as current default until another provider passes
+the same contract and workload benchmarks. Do not assume fastest by name.
+| JNA / JNA-platform
+| Extensive existing Win32 mappings, Unicode and structure support.
+Proxy/structure marshalling may allocate; direct mapping is also available.
+| Implement a real Windows binding alongside JNR. Evaluate direct mapping
+for hot calls. Test allocation and lifetime behaviour rather than asserting
+that all JNA calls allocate or are slow.
+| JDK FFM / Panama
+| Standard API final since JDK 22; invokes C ABI functions without a custom
+JNI bridge. Java 21's API is preview. Requires explicit memory lifetimes,
+layouts, error capture and native-access deployment configuration.
+| Optional Java 22+ provider in a separate artifact. Strong long-term
+candidate. Cache downcall handles; avoid per-call arenas on hot paths.
+| Handwritten JNI
+| Precise control over ABI, batching and native semantics. Requires building,
+testing and distributing a native library for every supported OS/architecture.
+| Reserve for measured bottlenecks or semantics impractical in other bindings.
+Do not add a native build toolchain merely to wrap ordinary Win32 functions.
+| JavaCPP / SWIG
+| Generate native/JNI bindings, particularly useful for large C/C++ APIs;
+still require native compilation and distribution.
+| Consider if a sizeable shared native shim becomes necessary. Excess build
+and maintenance cost for this small facade today.
+| JDK NIO / ordinary Java
+| Useful for portable file operations and time APIs, but not a complete
+replacement for raw descriptor, pointer, mapping and affinity semantics.
+| Reuse where contracts match. Avoid reflective JDK internals as a production
+backend. WSL/Cygwin are different execution environments, not Java bindings.
+|===
+
+== Architecture and correctness
+
+Separate Windows semantics (flag translation, error policy, supported modes,
+ownership) from the native binding. A Java 8-compatible internal boundary
+allows JNR and JNA to run the same semantic tests. The FFM artifact implements
+the same boundary where practical, without exposing MemorySegment, Arena or
+MethodHandle details in the public PosixAPI contract.
+
+Keep descriptor operations on the same selected CRT runtime. A descriptor
+opened by one CRT must not be consumed by another CRT's close/read/errno.
+Pass HANDLEs only via explicit conversion and ownership rules. Do not switch
+providers halfway through operations on existing descriptors or mappings.
+Capture Win32 errors before another native call overwrites them, translate
+to the chosen errno domain, and keep CRT errno distinct from GetLastError.
+
+Test ABI widths: C long is 32 bits on Windows x64; pointers and handles are
+64 bits; __int64 file offsets are 64 bits. JNA NativeLong is not a pointer
+or __int64 substitute. In FFM use correct native layouts/canonical C types,
+not Java long for every native integer. Generated bindings from jextract
+can reduce transcription errors, but must be built with a pinned compatible
+tool/Windows SDK and reviewed; jextract is not the runtime API itself.
+
+== Build and packaging
+
+* `posix`: Java 8 source/tests and bytecode, buildable using actual JDK 8.
+No compile-time FFM references, FFM annotations or newer JDK test APIs.
+Retain the current Java 8 compiler setup; adopting --release 8 on modern
+JDKs requires auditing existing sun.misc.Unsafe use rather than blindly
+changing compiler flags.
+* `posix-ffm`: separate Maven artifact depending on the Java 8 API, compiled
+using a JDK 22+ toolchain with release 22 (major 66). Use JDK 25 for local
+development if desired, but execute compatibility tests on JDK 22 as well.
+Do not inherit source/target 1.8 into this module's compiler execution.
+* Keep the FFM project outside the default Java 8 reactor, or include it
+only through an explicit modern-JDK build profile. A full release job uses
+both toolchains. A JDK 8-only checkout build must not resolve or compile the
+FFM module. The base artifact must not depend transitively on posix-ffm.
+* Discovery in the base module uses Java 8-compatible runtime detection and
+a class name or guarded factory SPI. Do not eagerly load FFM classes on
+Java 8-21; do not register a modern provider in an unguarded ServiceLoader
+path. Test absent/present optional artifact on old JVMs and unsupported
+explicit requests. Never silently turn an explicitly requested provider
+into NoOp. Automatic fallback should report its reason.
+* On 22+, require explicit FFM opt-in initially. Document
+`--enable-native-access=ALL-UNNAMED` for classpath deployments, or the actual
+named provider module for module-path deployments. Native access restrictions
+also affect JNI-backed libraries on modern JDKs; it is not just an FFM concern.
+* A multi-release JAR is a possible later packaging alternative: Java 8
+base classes, versioned implementation under META-INF/versions/22 and
+Multi-Release manifest metadata. It still needs a 22+ compiler to produce
+the complete artifact, plus JAR/shading/service-discovery tests. Separate
+artifacts are the agreed initial choice because the Java 8 build stays simple.
+
+== Shared test and benchmark gates
+
+Run every one of the 43 PosixAPI method contracts for each advertised
+provider. Each combination has support, supported-subset or unavailable
+expectations; unavailable methods must assert failure rather than skip.
+Compare actual bytes, file sizes, offsets and error classes. Use native OS
+or file observations as an oracle, not merely agreement between two backends.
+Include independent process/thread tests, error isolation and resource leaks.
+
+JNR/JNA must compile and execute on Java 8 as well as the supported newer
+JDKs. FFM uses Java 22 and 25 jobs; the Java 8/11/17/21 jobs prove it is never
+loaded. Test provider selection separately from method behaviour.
+
+Benchmark only after correctness: warm/cold startup separately, thread ID
+and clocks, small and large file I/O, map/unmap and flush, concurrent calls,
+bytes allocated per operation, throughput and latency distributions. Compare
+JNA proxy/direct mappings, JNR and FFM on equivalent native operations and
+lifetimes. Use JMH with separate forks and GC profiling. Do not claim
+zero-GC or choose a default from the small feasibility probes.
+
+== References
+
+* https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html[Java 21 preview FFM]
+* https://docs.oracle.com/en/java/javase/22/core/foreign-function-and-memory-api.html[Java 22 final FFM]
+* https://github.com/java-native-access/jna[JNA and platform bindings]
+* https://github.com/jnr/jnr-ffi[JNR-FFI]
+* https://github.com/bytedeco/javacpp[JavaCPP]
+* https://www.swig.org/Doc4.3/Java.html[SWIG Java bindings]
+* https://maven.apache.org/guides/mini/guide-using-toolchains.html[Maven toolchains]
+* https://docs.oracle.com/en/java/javase/22/docs/specs/jar/jar.html[JAR specification and multi-release packaging]

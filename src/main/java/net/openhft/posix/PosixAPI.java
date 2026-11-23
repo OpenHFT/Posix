@@ -182,9 +182,14 @@ public interface PosixAPI {
      * fail if the operating system does not support memory locking or the
      * process exceeds its {@code RLIMIT_MEMLOCK} limit.
      *
+     * The JNR provider performs the native call on every JVM vendor. Expected
+     * permission, resource, transient and unsupported-operation failures return
+     * {@code false}; invalid ranges and other unexpected native errors throw.
+     *
      * @param addr   start address
      * @param length number of bytes to lock
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock(long addr, long length) {
         return false;
@@ -195,11 +200,16 @@ public interface PosixAPI {
      * first access when {@code lockOnFault} is {@code true}. The default
      * implementation returns {@code false}. Failure reasons mirror those of
      * {@code mlock} and also include lack of kernel support for {@code mlock2}.
+     * The JNR provider returns {@code false} for Linux {@code ENOSYS}; on macOS,
+     * where {@code mlock2} is absent, it performs an eager {@code mlock} instead.
+     * Invalid ranges and other unexpected JNR errors are reported as exceptions,
+     * consistently with {@code mlock}.
      *
      * @param addr        start address
      * @param length      number of bytes to lock
      * @param lockOnFault defer locking until the memory is touched
-     * @return {@code true} on success, {@code false} otherwise
+     * @return {@code true} when locked, {@code false} when locking is unavailable
+     * @throws PosixRuntimeException if the JNR provider reports an unexpected error
      */
     default boolean mlock2(long addr, long length, boolean lockOnFault) {
         return false;
@@ -251,6 +261,40 @@ public interface PosixAPI {
      * @see <a href="https://man7.org/linux/man-pages/man2/msync.2.html">msync(2)</a>
      */
     int msync(long address, long length, int mode);
+
+    /**
+     * Flushes a caller-owned mapped view without taking ownership of its address
+     * or file handle. The caller must keep the entire range mapped until return.
+     * This is not a file metadata or durable-storage guarantee; the mapping owner
+     * must additionally force its retained file handle when that is required.
+     * Unsupported providers throw rather than reporting successful work.
+     */
+    default int flushMappedView(long address, long length) {
+        throw new UnsupportedOperationException("External mapped-view flushing is unavailable");
+    }
+
+    /**
+     * Requests cache prefetch for a caller-owned mapped range. True means only
+     * that the hint was accepted, not writable-page population or residency.
+     * False means unsupported or failed; ordinary demand paging remains valid.
+     */
+    default boolean prefetchMappedView(long address, long length) {
+        return false;
+    }
+
+    /** Retained file identity for flushing after the original descriptor closes. */
+    interface FileSync extends AutoCloseable {
+        void force() throws java.io.IOException;
+        @Override void close() throws java.io.IOException;
+    }
+
+    /**
+     * Duplicates the caller's file handle. The caller must prevent descriptor
+     * closure during this call and close the returned resource exactly once.
+     */
+    default FileSync retainFileSync(java.io.FileDescriptor descriptor) throws java.io.IOException {
+        throw new UnsupportedOperationException("Retained file flushing is unavailable");
+    }
 
     /**
      * Unmap a region previously mapped with {@code mmap}.
@@ -312,21 +356,37 @@ public interface PosixAPI {
      * and reads its output. Thread-safe as it performs no shared mutations.
      *
      * @param filename path to inspect
-     * @return usage in bytes
+     * @return allocated usage in KiB (matching the existing du output convention)
      * @throws IOException if the child process fails
      */
     default long du(String filename) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("du", filename);
+        // Explicit KiB units are independent of POSIXLY_CORRECT/BLOCK_SIZE.
+        ProcessBuilder pb = new ProcessBuilder("du", "-k", "-s", "--",
+                new java.io.File(filename).getAbsolutePath());
         pb.redirectErrorStream(true);
         final Process process = pb.start();
         try (InputStream inputStream = process.getInputStream();
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              BufferedReader br = new BufferedReader(inputStreamReader)) {
+            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS))
+                throw new IOException("du timed out for " + filename);
             String line = br.readLine();
+            if (process.exitValue() != 0)
+                throw new IOException("du failed for " + filename + ": " + line);
             if (line == null) {
                 throw new IOException("du produced no output for " + filename);
             }
-            return Long.parseUnsignedLong(line.split("\\s+")[0]);
+            try {
+                return Long.parseUnsignedLong(line.trim().split("\\s+")[0]);
+            } catch (NumberFormatException invalid) {
+                throw new IOException("Invalid du output: " + line, invalid);
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for du", interrupted);
+        } finally {
+            if (process.isAlive())
+                process.destroyForcibly();
         }
     }
 
@@ -373,7 +433,7 @@ public interface PosixAPI {
      */
     default String sched_getaffinity_summary(int pid) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         boolean set = false;
         int start = 0;
@@ -383,8 +443,8 @@ public interface PosixAPI {
             if (ret != 0)
                 return "na: " + lastError();
             for (int i = 0; i < nprocs_conf; i++) {
-                final int b = UNSAFE.getInt(ptr + i / 32);
-                if (((b >> i) & 1) != 0) {
+                final int b = UNSAFE.getByte(ptr + i / 8);
+                if (((b >> (i & 7)) & 1) != 0) {
                     if (!set) {
                         start = i;
                         set = true;
@@ -425,7 +485,9 @@ public interface PosixAPI {
      */
     default int sched_setaffinity_as(int pid, int cpu) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        if (cpu < 0 || cpu >= nprocs_conf)
+            throw new IllegalArgumentException("CPU outside configured range: " + cpu);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
@@ -451,15 +513,17 @@ public interface PosixAPI {
      */
     default int sched_setaffinity_range(int pid, int from, int to) {
         final int nprocs_conf = get_nprocs_conf();
-        final int size = Math.max(8, (nprocs_conf + 7) / 64 * 8);
+        if (from < 0 || to < from || to >= nprocs_conf)
+            throw new IllegalArgumentException("Invalid inclusive CPU range: " + from + "-" + to);
+        final int size = (int) Math.max(8L, ((long) nprocs_conf + 63) / 64 * 8);
         long ptr = malloc(size);
         try {
             for (int i = 0; i < size; i += 4)
                 UNSAFE.putInt(ptr + i, 0);
 
             for (int i = from; i <= to; i++) {
-                UNSAFE.putInt(ptr + i / 32,
-                        UNSAFE.getInt(ptr + i / 32) | (1 << i));
+                UNSAFE.putByte(ptr + i / 8,
+                        (byte) (UNSAFE.getByte(ptr + i / 8) | (1 << (i & 7))));
             }
             return sched_setaffinity(pid, size, ptr);
         } finally {

@@ -1,0 +1,115 @@
+= Windows Provider Capabilities (FIX-292)
+:toc:
+:sectnums:
+:source-highlighter: rouge
+
+== Selection and requirements
+
+Windows providers require a 64-bit Windows JVM. The Java 8 core supplies JNR
+(automatic selection) and JNA. Set `chronicle.posix.provider` to `jnr`, `jna`, `jna-direct`,
+`noop` or `ffm` to request a provider. Explicit requests never silently fall
+back. FFM requires Java 22+ and a separately built optional artifact.
+JNA interface and direct mapping are both available; no blanket zero-allocation
+claim is made. See windows-qualification.adoc for measured allocation rates.
+
+== Implemented contracts
+
+* Binary open/read/write/close, UTF-16 paths, 64-bit seek and truncate.
+* Open flags: read, write, read/write, append, create, truncate, exclusive.
+Unsupported bits return EINVAL. Permission read/write bits map to CRT modes;
+POSIX ownership and ACL semantics are not provided.
+* Seek SET/CUR/END. DATA/HOLE are unavailable. The previously incorrect
+WhenceFlag constants are corrected to native POSIX values; code persisting
+the old numeric enum values must migrate. Unix translates DATA/HOLE at the
+Darwin ABI boundary, where the native values are reversed; ordinary seeks
+and the public enum values remain unchanged. `UnixConstantsTest` verifies
+this translation on every host (POSIX-TEST-014).
+* CRT errno and error strings, off-heap allocation/free, PID/native TID,
+active and maximum Windows logical processor counts across groups.
+* Realtime, monotonic, process CPU and thread CPU clocks. Other clock IDs
+throw IllegalArgumentException. Timeval is two 64-bit fields on this provider.
+* File-backed shared and private/copy-on-write mappings, read or read/write
+protection, allocation-granularity-aligned offsets and complete-view unmap.
+Mappings must fit inside the existing file. Address hints/fixed mappings,
+anonymous mappings, other protection modes and partial unmaps are unavailable.
+* MS_SYNC flushes the view and, for writable shared views, its duplicated file
+handle. Closing the original descriptor does not invalidate the view. MS_ASYNC
+and MS_INVALIDATE are unavailable. Callers must unmap every successful view.
+* MADV_WILLNEED uses PrefetchVirtualMemory where exported by Windows (8+).
+Other advice modes are unavailable. VirtualLock supports mlock and
+mlock2(false), subject to OS quotas. Unmapping releases locked mapped pages;
+the public API has no munlock operation. mlock2(true) is unavailable.
+
+== Unavailable contracts
+
+Mode-zero fallocate reserves allocation and extends EOF without changing
+the file position; other modes (punch-hole, keep-size, etc.) are unavailable.
+Callers must serialise operations that concurrently resize the same file.
+Disk usage supports individual files and returns allocated KiB, preserving
+the facade's historical du convention; it does not recursively count directories.
+
+Byte-range locking supports F_LOCK/F_TLOCK/F_ULOCK for positive lengths
+relative to the current offset. Windows locks are mandatory for ordinary
+file I/O, unlike POSIX advisory locks. F_TEST, backwards ranges and zero-length
+to-EOF locking are unavailable. Cross-process contention is tested in bounded
+child JVMs.
+
+Affinity accepts zero for the current thread or a native thread ID. It
+supports a single processor group (up to 64 configured logical CPUs), rejects
+other topologies with ENOSYS, and does not treat the argument as a process ID.
+WindowsContractTest exercises worker-thread affinity and restores its mask.
+
+Unsupported modes report -1 with CRT ENOSYS (40). The void
+mlockall method retains its historical no-op for compatibility
+and sets ENOSYS: it does not lock pages. Disk usage errors throw IOException.
+
+== Test obligations
+
+`WindowsAllocationFailureTest` injects scratch allocation failure after native
+thread-handle or file-descriptor acquisition (POSIX-TEST-014). Owned handles,
+including descriptor zero, must close while the original allocation failure
+propagates. Borrowed current-thread pseudo-handles must never close.
+
+WindowsContractTest runs the same assertions against each advertised binding.
+An invocation registry requires every one of the 43 PosixAPI signatures to
+execute, including overloads, static selection and unavailable calls.
+WindowsBoundaryTest checks large transfer capping without huge allocation
+and affinity masks across CPU indexes 31/32/63/64/128 with buffer canaries.
+Raw pointer validity remains the caller's responsibility.
+
+[[portable-regression-tests]]
+=== Portable regression tests (POSIX-TEST-014)
+
+`JNRPosixAPITest.clocks` also runs on Windows, asserting wall-clock bounds,
+monotonic ordering, non-negative CPU times and rejection of unsupported IDs.
+Unix retains its allowance for optional clock IDs that the OS cannot supply.
+`ProcMapsTest.forPidFailsForNonExistentProcess` checks the missing-source
+IOException on every platform. `ProcMapsEdgeCaseTest` uses fixture input for
+filtering and list immutability; its package-private reader constructor
+consumes and closes the input on both success and failure.
+
+These parser/error checks do not implement Windows process-map enumeration.
+The live `/proc/self/maps` integration test and sparse `SEEK_DATA` test remain
+Linux-specific because the corresponding Windows functionality is unavailable.
+
+The legacy `mmap_sync`, `mlock` and `mlock2` tests run on Windows and Linux.
+Mapping checks validate a non-zero, non-failure address before writing the
+first and last bytes, then synchronously flush and read the file contents.
+Linux retains its `/proc`, allocation, advice and asynchronous-sync checks;
+Windows explicitly checks that MS_ASYNC returns ENOSYS.
+The page-lock tests assert successful locking of one 4 KiB mapping rather
+than ignoring the result. On Windows, `mlock2(true)` must reject lock-on-fault
+with ENOSYS, while `mlock2(false)` must successfully lock eagerly.
+These checks require a sufficient OS page-lock allowance. Unmap, close and
+file deletion are attempted even if a preceding assertion fails.
+The prior guards remain for other Unix platforms; this does not qualify macOS.
+
+`JNRPosixAPITest.setaffinity` also runs on Windows. It captures the test
+thread's original mask, selects an allowed CPU, verifies pinning and restores
+the original mask in a finally block. The native buffer is freed even if
+restoration fails. Windows configurations above 64 logical CPUs check the
+explicit ENOSYS contract instead; this is not multi-group affinity coverage.
+The macOS exclusion is retained.
+`WindowsMappingFailureTest` injects failure in mapping-object creation and
+view creation, verifying that each acquired handle closes exactly once while
+the caller-owned original handle stays open (POSIX-TEST-014).

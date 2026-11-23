@@ -1,0 +1,236 @@
+= Windows POSIX Pull Request Plan
+:toc:
+:sectnums:
+:lang: en-GB
+:source-highlighter: rouge
+
+== Outcome and status
+
+Implementation update (FIX-292, 14 November 2026): the plan below is the
+original breakdown. Work has been consolidated into six stacked PRs:
+https://github.com/OpenHFT/Posix/pull/93[file I/O],
+https://github.com/OpenHFT/Posix/pull/94[shared contracts and JNA],
+https://github.com/OpenHFT/Posix/pull/95[mappings and page operations],
+https://github.com/OpenHFT/Posix/pull/96[allocation, locks and affinity],
+https://github.com/OpenHFT/Posix/pull/97[optional FFM], and the qualification
+branch (CI, JNA direct mapping, benchmarks and documentation).
+See link:windows-qualification.adoc[current validation and remaining limits].
+
+Every one of the 43 declared `PosixAPI` signatures, including static methods
+and default overloads, must have an explicit behavioural test. Every Windows
+operation must either work for a documented subset or explicitly report that
+it is unavailable. Unsupported behaviour is tested, not skipped.
+
+The shared contract now executes all 43 signatures for each Windows binding.
+This does not mean every edge case below has been qualified. See
+link:windows-support.adoc[observations and remaining defects].
+
+The Java 8 compilation requirement is mandatory. The agreed provider design
+is documented in link:native-provider-strategy.adoc[native provider strategy]:
+retain JNR, implement JNA parity, and build Panama in a separate optional
+Java 22+ artifact. The original series gains PRs 2a and 2b below.
+
+== Ordered PR series
+
+[cols="1,3,5",options="header"]
+|===
+| PR | Title / dependency | Scope and acceptance
+| 1
+| Fix Windows native file-I/O widths and truncation
+| Existing local patch: pointer-width annotations, 64-bit seek, binary I/O,
+real truncation and CRT errno. Seven native regression tests. Add a fake
+native boundary to test transfer capping above INT_MAX without allocating
+gigabytes. Preserve Java binding signatures. Gate on clean verify.
+| 2
+| Define unavailable operations and enforce method coverage (after 1)
+| Replace false-success stubs with documented failures. Define a Windows
+capability table down to flags/clock IDs. Add a test registry keyed by full
+signature and compare with reflection over `PosixAPI.getDeclaredMethods()`;
+fail when a new signature lacks a behavioural test. Register test identifiers
+and verify those tests ran on Windows; a name-only inventory is insufficient.
+Test every unavailable method and all default overloads. Add native Windows
+CI for JDK 17/21 initially, Linux regression CI, and the project's remaining
+supported JDKs once confirmed. Resolve the quality-rules dependency first.
+| 2a
+| Add shared Windows contracts and a real JNA binding (after 2, before 3)
+| Extract Java 8-compatible Windows semantics and a native boundary. Run all
+43 contracts against JNR and JNA, including explicit unavailable methods.
+Add controlled provider selection and load diagnostics; keep descriptor/CRT
+ownership consistent. Extend PRs 3-8 to implement and test both bindings.
+| 2b
+| Add optional Panama artifact and guarded discovery (after 2a)
+| Keep the main artifact compilable with actual JDK 8. Compile posix-ffm
+separately with release 22 and test on JDK 22/25. Share contracts, isolate
+modern classes from Java 8-21, and document native-access flags. No Java 21
+preview dependency. Qualify FFM methods as implemented or unavailable;
+keep selection opt-in until full correctness and benchmark gates pass.
+| 3
+| Translate Windows open flags and support Unicode paths (after 2a)
+| Use wide CRT paths and explicit mapping of public flags, access and
+permission bits. Create/truncate/append/exclusive-create tests must inspect
+files. Reject unsupported flags. Audit Unix enum translation separately so
+a Windows fix does not change Linux/macOS ABI accidentally.
+| 4
+| Implement Windows file mappings and synchronous flush (after 3)
+| Use CRT descriptor-to-handle conversion, CreateFileMapping,
+MapViewOfFile, UnmapViewOfFile and FlushViewOfFile. Retain/duplicate a file
+handle where durable flush requires FlushFileBuffers. Track view ownership
+and release all resources on failure. Initially support documented aligned,
+whole-view mappings and supported protections; reject fixed replacement,
+partial unmaps and unsupported modes. Tests cover shared/private mappings,
+reopen/readback, descriptor closure while mapped, alignment and cleanup.
+| 5
+| Implement Windows clock and process information contracts (after 2)
+| Real time and monotonic elapsed time have separate sources. Implement
+process/thread CPU clocks only through verified native APIs. Test all ClockId
+values: supported semantics or explicit rejection. Cover timeval layout,
+conversion, processor counts, PID and live concurrent thread IDs.
+| 6
+| Implement practical allocation, disk usage and byte-range locking (after 3)
+| Evaluate FileAllocationInfo plus EOF management for mode-zero fallocate;
+do not equate ftruncate with reservation. Implement file disk usage using
+native allocation information after resolving the current bytes-versus-KiB
+contract. Evaluate LockFileEx/UnlockFileEx with explicit POSIX differences.
+Use bounded cross-process contention tests. Keep modes that cannot meet the
+contract explicitly unavailable; do not approximate them silently.
+| 7
+| Add supported memory advice and page locking (after 4)
+| Implement WILLNEED through PrefetchVirtualMemory where available and mlock
+through VirtualLock. mlock2(false) may delegate to mlock; lock-on-fault and
+mlockall remain unavailable unless equivalent semantics can be proven.
+Test the Win32 boundary, permissions/quota failures and cleanup. Check zero
+allocation expectations before choosing per-call structures or registries.
+| 8
+| Fix affinity helpers and add bounded Windows affinity support (after 2, 5)
+| First fix mask byte offsets, round-up size and input bounds in default
+helpers. Audit CPU indexes 31/32/63/64 and non-multiple-of-64 counts with
+fake masks and canaries. Define pid=0/current-thread and native TID semantics
+to match existing callers, then use thread/group APIs for supported masks.
+Reject unrepresentable cross-group requests. Always restore affinity.
+| 9
+| Qualify Windows support and publish the capability matrix (after 4-8)
+| Verify all 43 signatures have executed tests, all unsupported flags are
+listed and tested, and Linux/macOS regressions pass. Add Windows NTFS local
+integration, filesystem capability failures, child-JVM crash isolation,
+resource leak checks and a supported-JDK matrix. Qualify ARM64/32-bit only
+on real runners; otherwise mark them unqualified. Publish exact limitations.
+|===
+
+PRs 5 and 8's pure helper tests can progress independently of file mappings.
+Do not delay truthful unsupported-operation results until native replacements
+are ready. Each later implementation replaces its unsupported-contract test
+with success/error tests for the supported subset and retains rejection tests.
+
+== Unavailable-operation contract (PR 2)
+
+* Integer status/count and address-returning system calls return `-1` and
+set a documented thread-local errno for unsupported operations. Use a
+verified Windows CRT ENOSYS value; do not copy Linux errno numbers.
+`mmap` must never return zero as pretend success.
+* Boolean locking calls return `false` with the same documented error.
+* Invalid/unsupported clock IDs throw `IllegalArgumentException`, matching
+the current interface contract; include the clock ID in the message.
+* `du` throws an informative `IOException` until native support exists.
+* `mlockall` has an existing documented no-op default and no return value.
+Prefer an explicit Windows override throwing `UnsupportedOperationException`,
+but audit Chronicle callers and ship a compatibility note with this change.
+Do not change other providers' defaults incidentally. If compatibility
+requires retaining the no-op temporarily, mark it unavailable in the
+capability table and test the documented no-op explicitly.
+* Distinguish invalid argument, access denied, invalid descriptor, unsupported
+feature and exhausted resources. Map Win32 errors to the same errno domain
+as CRT operations; test thread isolation and error freshness.
+
+== Complete method-to-test matrix
+
+Test identifiers below are acceptance targets, not existing test claims.
+Each row is one declared signature. Names omit parameter names but retain
+types so overloads are unambiguous. 'Subset' means remaining modes must
+have explicit unavailability tests. Existing PR 1 coverage is described above.
+
+[cols="4,2,5",options="header"]
+|===
+| Signature | Decision / PR | Required behavioural test
+| `posix()` | Support / 2 | ProviderSelection: isolated JVM selects WinJNR, repeated/concurrent access, load-failure fallback.
+| `useNoOpPosixApi()` | Support / 2 | ProviderDisable: explicit replacement and stable subsequent selection; isolate global state.
+| `close(int)` | Support / 1,3 | DescriptorClose: valid close, invalid descriptor, use after close, resource release.
+| `fallocate(int,int,long,long)` | Subset / 2,6 | FileAllocation: reservation and EOF semantics, unchanged bytes/position, overflow, unsupported modes/filesystems.
+| `ftruncate(int,long)` | Support / 1 | Truncate: extend zero-fill, shrink, unchanged position, read-only/invalid fd, negative and 64-bit sizes.
+| `lseek(int,long,WhenceFlag)` | Subset / 2,3 | SeekEnum: every enum delegates and preserves result/error; unsupported SEEK_DATA/HOLE rejected.
+| `lseek(int,long,int)` | Subset / 1,3 | SeekNative: SET/CUR/END, negative resulting offset, beyond 4 GiB, invalid whence and fd.
+| `lockf(int,int,long)` | Subset / 2,6 | RangeLock: each command, child-process contention/unlock, current offset, zero/negative lengths, unsupported semantics.
+| `madvise(long,long,MAdviseFlag)` | Subset / 2,7 | AdviceEnum: each enum routed to supported behaviour or explicit failure.
+| `madvise(long,long,int)` | Subset / 2,7 | AdviceNative: WILLNEED native dispatch, invalid ranges/flags and missing OS API; no destructive approximation of DONTNEED.
+| `mmap(long,long,MMapProt,MMapFlag,int,long)` | Subset / 2,4 | MappingEnum: protection/flag forwarding and native failure propagation.
+| `mmap(long,long,int,int,int,long)` | Subset / 2,4 | MapNative: shared/private bytes, read-only enforcement in child JVM, offsets, length overflow, invalid fd and failure cleanup.
+| `mlock(long,long)` | Support with quotas / 2,7 | PageLock: native lock dispatch, privilege/quota failure and invalid range; child-process lifetime cleanup.
+| `mlock2(long,long,boolean)` | Subset / 2,7 | PageLockMode: false delegates, true explicitly unavailable; error propagation.
+| `mlockall(MclFlag)` | Unavailable / 2,7 | LockAllEnum: every flag delegates to the documented unavailable contract.
+| `mlockall(int)` | Unavailable / 2,7 | LockAllNative: documented rejection/no-op compatibility decision, no claim of locked memory.
+| `msync(long,long,MSyncFlag)` | Subset / 2,4 | SyncEnum: enum forwarding and invalid combinations.
+| `msync(long,long,int)` | Subset / 2,4 | SyncNative: synchronous flush/readback and error injection; explicitly decide ASYNC and INVALIDATE support.
+| `munmap(long,long)` | Whole view / 2,4 | Unmap: valid release, double unmap, unknown address, partial-range rejection, no handle leaks.
+| `open(CharSequence,OpenFlag,int)` | Subset / 2,3 | OpenEnum: each single flag has documented access/error semantics and correct forwarding.
+| `open(CharSequence,int,int)` | Subset / 1,3 | OpenNative: create/exclusive/truncate/append, access modes, Unicode path, permissions, unsupported bits, missing path.
+| `read(int,long,long)` | Support / 1,3 | BinaryRead: byte-exact data, EOF/short read, zero/negative length, invalid fd, pointer width, count cap.
+| `write(int,long,long)` | Support / 1,3 | BinaryWrite: byte-exact data, short write/disk full via injection, zero/negative length, read-only fd, count cap.
+| `du(String)` | File subset / 2,6 | DiskUsage: specified units, allocated versus logical length, sparse/compressed files, Unicode/missing path; directory policy explicit.
+| `gettimeofday(long)` | Support / 5 | TimevalNative: valid buffer with canaries, seconds/microseconds bounds, wall-clock bracket and ABI layout.
+| `sched_setaffinity(int,int,long)` | Subset / 2,8 | SetAffinity: supported TID/current-thread masks, invalid size/ID, group restrictions and restore in finally.
+| `sched_getaffinity(int,int,long)` | Subset / 2,8 | GetAffinity: actual effective mask, buffer canaries, invalid/undersized mask and unsupported group cases.
+| `sched_getaffinity_summary(int)` | Support helper / 2,8 | AffinitySummary: empty/single/ranged masks through CPU 128, error text and allocation release.
+| `lastError()` | Support / 1,2 | Errno: CRT and mapped Win32 failures, fresh error, cross-thread isolation.
+| `sched_setaffinity_as(int,int)` | Support helper / 2,8 | AffinitySingle: exact bit, bounds, canaries, allocation failure and native error propagation.
+| `sched_setaffinity_range(int,int,int)` | Support helper / 2,8 | AffinityRange: inclusive endpoints, 31/32/63/64 crossings, reverse/out-of-range bounds, freed buffers.
+| `gettimeofday()` | Support helper / 2,5 | TimevalConversion: microsecond conversion, failure result zero, memory freed on success/failure.
+| `clock_gettime()` | Support / 5 | DefaultClock: real-time semantics and nanosecond units.
+| `clock_gettime(ClockId)` | Subset / 2,5 | ClockEnum: every declared ID supports correct semantics or throws documented rejection.
+| `clock_gettime(int)` | Subset / 2,5 | ClockNative: real time, monotonic progress, CPU clocks where implemented, invalid IDs, suspend semantics documented.
+| `malloc(long)` | Support / 1,2 | Allocate: writable independent buffers, defined zero/negative size and allocation failure policy; no huge-allocation stress in CI.
+| `free(long)` | Support / 1,2 | Free: matching allocation released, defined null behaviour and fake-boundary cleanup accounting; never double-free live native memory.
+| `get_nprocs()` | Support / 5 | ActiveProcessors: positive count, CPU/job/group restrictions with fake native topology; define available versus online semantics.
+| `get_nprocs_conf()` | Support / 5 | ConfiguredProcessors: topology count and relation to online count, all groups; do not simply assume availableProcessors means configured.
+| `getpid()` | Support / 5 | ProcessId: OS/JDK reference in JDK 17+ tests, stable across threads and distinct child PID.
+| `gettid()` | Support / 5 | ThreadId: stable per live thread, distinct simultaneously-live threads; use barriers to avoid ID reuse.
+| `strerror(int)` | Support / 1,2 | ErrorText: known/unknown errors return useful text; do not assert English locale strings.
+| `lastErrorStr()` | Support helper / 2 | LastErrorText: delegates actual captured errno; known failure yields useful text without resetting error.
+|===
+
+The public facade has no `flock` method despite a requirements reference to
+it. Do not invent coverage for a nonexistent method; audit lower-level native
+interfaces separately. Correct the requirements text or propose API expansion
+in a separate PR if consumers need it.
+
+== Test architecture and completion gates
+
+* Pure contract tests cover every default overload, flag translation,
+overflow, masks and native failure path through an injectable boundary.
+Do not count mere forwarding as sufficient coverage of native semantics.
+* Native Windows tests verify contents, positions, clocks and OS effects.
+They must assert the selected provider is real, not a fallback NoOp.
+Unsupported operations get assertions on results/errors, not assumptions.
+* Unsafe protection/unmap tests, blocking locks and provider global state
+run in bounded child JVMs. Parent tests enforce timeouts, record exit codes
+and restore resources. Do not intentionally dereference invalid pointers in
+the main Surefire JVM.
+* Each implementation PR updates the capability matrix, Javadocs and tests
+together. List not-available modes and minimum OS/filesystem requirements.
+* Every PR runs clean verify; quality checks require resolving
+`net.openhft:chronicle-quality-rules:1.27.0-SNAPSHOT`, currently unavailable
+to the local quality build. Do not silently disable that gate.
+* Run the base build/tests with actual JDK 8, not just target 8 on a newer
+compiler. Run every contract against each advertised JNA/JNR/FFM provider;
+FFM alone has a Java 22+ build and execution baseline.
+* PR 9 is complete only when the registry matches all 43 current signatures
+and Windows reports show their tests executed. Add failure-path assertions
+and selective mutation checks to ensure tests detect no-op success stubs.
+
+== Design references
+
+Native mechanisms are implementation candidates, not promises of exact
+POSIX equivalence. Confirm semantics before advertising each capability.
+
+* https://learn.microsoft.com/en-us/windows/win32/memory/creating-a-file-view[Windows file views and allocation granularity]
+* https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ne-minwinbase-file_info_by_handle_class[File allocation information]
+* https://learn.microsoft.com/en-us/windows/win32/fileio/locking-and-unlocking-byte-ranges-in-files[Windows byte-range locking]
+* https://learn.microsoft.com/windows/win32/procthread/processor-groups[Processor groups]

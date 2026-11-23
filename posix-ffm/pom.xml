@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2013-2025 chronicle.software; SPDX-License-Identifier: Apache-2.0 -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!-- Intentionally separate from the Java 8 build and its compiler settings. -->
+  <groupId>net.openhft</groupId><artifactId>posix-ffm</artifactId><version>2026.3-SNAPSHOT</version>
+  <name>OpenHFT Posix optional FFM provider</name>
+  <properties>
+    <maven.compiler.release>22</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <dependencies>
+    <dependency><groupId>net.openhft</groupId><artifactId>posix</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>net.openhft</groupId><artifactId>posix</artifactId><version>${project.version}</version><type>test-jar</type><scope>test</scope></dependency>
+    <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
+  </dependencies>
+  <build><plugins>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.14.0</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.1.2</version>
+      <configuration>
+        <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+        <systemPropertyVariables><posix.test.providers>ffm</posix.test.providers></systemPropertyVariables>
+      </configuration>
+    </plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.3.0</version></plugin>
+  </plugins></build>
+</project>
+

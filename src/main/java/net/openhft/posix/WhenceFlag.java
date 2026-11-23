@@ -12,19 +12,19 @@ package net.openhft.posix;
  */
 public enum WhenceFlag {
     /** Offset is set to {@code offset} bytes. */
-    SEEK_SET(1),
+    SEEK_SET(0),
 
     /** Add {@code offset} to the current location. */
-    SEEK_CUR(2),
+    SEEK_CUR(1),
 
     /** Set offset relative to end of file. */
-    SEEK_END(3),
+    SEEK_END(2),
 
     /** Move to the next data region at or after {@code offset}. */
-    SEEK_DATA(4),
+    SEEK_DATA(3),
 
     /** Move to the next hole at or after {@code offset}. */
-    SEEK_HOLE(5);
+    SEEK_HOLE(4);
 
     // The integer value representing the whence flag
     private final int value;
