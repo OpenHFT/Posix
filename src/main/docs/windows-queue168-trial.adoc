@@ -12,3 +12,13 @@ Bytes owns address bounds, mapping lifetime and ordering: flush view before forc
 WindowsContractTest covers all three bindings, invalid ranges and retained-handle force after original descriptor closure. Combined Bytes and Enterprise tests are required before adoption. Linux/macOS, FFM and performance qualification remain separate gates.
 
 Security review: range overflow is rejected before native view operations. Raw pointer validity and prevention of concurrent unmap remain caller obligations. Retained handles are private, synchronised against close, and closed during mapping cleanup. The Windows FileDescriptor handle lookup is JDK-specific and requires supported-JDK qualification.
+
+First provider selection runs native loading on a dedicated thread and waits for
+completion, preserving the caller's interrupt status, including on failure.
+This prevents both existing and newly arriving shutdown interrupts from poisoning
+JNR's static initialisation before its first mapped-file flush. Loading failures
+retain their original cause.
+`NativeLoaderInterruptTest` interrupts the caller after loading starts and checks
+that native extraction can still use an interruptible file channel.
+`InterruptedProviderLoadTest` starts a fresh JVM so the regression cannot be hidden
+by another test having loaded the native library first.
